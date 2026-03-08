@@ -446,30 +446,17 @@ impl Database {
     }
 
     pub async fn get_stats(&self) -> Result<ProxyStats> {
-        // Total & alive counts
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM proxies")
-                .fetch_one(&self.pool)
-                .await?;
-
-        let alive: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM proxies WHERE is_alive = 1")
-                .fetch_one(&self.pool)
-                .await?;
-
-        let dead: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM proxies WHERE is_alive = 0 AND last_check_at IS NOT NULL")
-                .fetch_one(&self.pool)
-                .await?;
-
-        let avg_score: (f64,) = sqlx::query_as(
-            "SELECT COALESCE(AVG(score), 0.0) FROM proxies WHERE is_alive = 1",
-        )
-        .fetch_one(&self.pool)
-        .await?;
-
-        let avg_latency: (f64,) = sqlx::query_as(
-            "SELECT COALESCE(AVG(avg_latency_ms), 0.0) FROM proxies WHERE is_alive = 1 AND avg_latency_ms > 0",
+        // Combined basic stats in a single query (was 5 separate queries)
+        let basics: (i64, i64, i64, f64, f64) = sqlx::query_as(
+            r#"
+            SELECT
+                COUNT(*),
+                SUM(CASE WHEN is_alive = 1 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN is_alive = 0 AND last_check_at IS NOT NULL THEN 1 ELSE 0 END),
+                COALESCE((SELECT AVG(score) FROM proxies WHERE is_alive = 1), 0.0),
+                COALESCE((SELECT AVG(avg_latency_ms) FROM proxies WHERE is_alive = 1 AND avg_latency_ms > 0), 0.0)
+            FROM proxies
+            "#,
         )
         .fetch_one(&self.pool)
         .await?;
@@ -485,7 +472,7 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
-        // Latency distribution
+        // Latency distribution - single query with CASE WHEN (was 5 queries)
         let latency_dist = self.get_latency_distribution().await?;
 
         // Protocol distribution
@@ -499,15 +486,15 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
-        // Score distribution
+        // Score distribution - single query with CASE WHEN (was 5 queries)
         let score_dist = self.get_score_distribution().await?;
 
         Ok(ProxyStats {
-            total_proxies: total.0,
-            alive_proxies: alive.0,
-            dead_proxies: dead.0,
-            avg_score: avg_score.0,
-            avg_latency_ms: avg_latency.0,
+            total_proxies: basics.0,
+            alive_proxies: basics.1,
+            dead_proxies: basics.2,
+            avg_score: basics.3,
+            avg_latency_ms: basics.4,
             country_distribution: countries,
             latency_distribution: latency_dist,
             protocol_distribution: protocols,
@@ -516,66 +503,51 @@ impl Database {
     }
 
     async fn get_latency_distribution(&self) -> Result<Vec<LatencyBucket>> {
-        let ranges = vec![
-            ("0-100ms", 0.0, 100.0),
-            ("100-300ms", 100.0, 300.0),
-            ("300-500ms", 300.0, 500.0),
-            ("500-1000ms", 500.0, 1000.0),
-            ("1000ms+", 1000.0, f64::MAX),
-        ];
+        let row: (i64, i64, i64, i64, i64) = sqlx::query_as(
+            r#"
+            SELECT
+                SUM(CASE WHEN avg_latency_ms >= 0 AND avg_latency_ms < 100 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN avg_latency_ms >= 100 AND avg_latency_ms < 300 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN avg_latency_ms >= 300 AND avg_latency_ms < 500 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN avg_latency_ms >= 500 AND avg_latency_ms < 1000 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN avg_latency_ms >= 1000 THEN 1 ELSE 0 END)
+            FROM proxies WHERE is_alive = 1
+            "#,
+        )
+        .fetch_one(&self.pool)
+        .await?;
 
-        let mut buckets = Vec::new();
-        for (label, min, max) in ranges {
-            let count: (i64,) = if max == f64::MAX {
-                sqlx::query_as(
-                    "SELECT COUNT(*) FROM proxies WHERE is_alive = 1 AND avg_latency_ms >= ?",
-                )
-                .bind(min)
-                .fetch_one(&self.pool)
-                .await?
-            } else {
-                sqlx::query_as(
-                    "SELECT COUNT(*) FROM proxies WHERE is_alive = 1 AND avg_latency_ms >= ? AND avg_latency_ms < ?",
-                )
-                .bind(min)
-                .bind(max)
-                .fetch_one(&self.pool)
-                .await?
-            };
-            buckets.push(LatencyBucket {
-                range: label.to_string(),
-                count: count.0,
-            });
-        }
-
-        Ok(buckets)
+        Ok(vec![
+            LatencyBucket { range: "0-100ms".to_string(), count: row.0 },
+            LatencyBucket { range: "100-300ms".to_string(), count: row.1 },
+            LatencyBucket { range: "300-500ms".to_string(), count: row.2 },
+            LatencyBucket { range: "500-1000ms".to_string(), count: row.3 },
+            LatencyBucket { range: "1000ms+".to_string(), count: row.4 },
+        ])
     }
 
     async fn get_score_distribution(&self) -> Result<Vec<ScoreBucket>> {
-        let ranges = vec![
-            ("0-20", 0.0, 20.0),
-            ("20-40", 20.0, 40.0),
-            ("40-60", 40.0, 60.0),
-            ("60-80", 60.0, 80.0),
-            ("80-100", 80.0, 101.0),
-        ];
+        let row: (i64, i64, i64, i64, i64) = sqlx::query_as(
+            r#"
+            SELECT
+                SUM(CASE WHEN score >= 0 AND score < 20 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN score >= 20 AND score < 40 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN score >= 40 AND score < 60 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN score >= 60 AND score < 80 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN score >= 80 AND score <= 100 THEN 1 ELSE 0 END)
+            FROM proxies
+            "#,
+        )
+        .fetch_one(&self.pool)
+        .await?;
 
-        let mut buckets = Vec::new();
-        for (label, min, max) in ranges {
-            let count: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM proxies WHERE score >= ? AND score < ?",
-            )
-            .bind(min)
-            .bind(max)
-            .fetch_one(&self.pool)
-            .await?;
-            buckets.push(ScoreBucket {
-                range: label.to_string(),
-                count: count.0,
-            });
-        }
-
-        Ok(buckets)
+        Ok(vec![
+            ScoreBucket { range: "0-20".to_string(), count: row.0 },
+            ScoreBucket { range: "20-40".to_string(), count: row.1 },
+            ScoreBucket { range: "40-60".to_string(), count: row.2 },
+            ScoreBucket { range: "60-80".to_string(), count: row.3 },
+            ScoreBucket { range: "80-100".to_string(), count: row.4 },
+        ])
     }
 
     #[allow(dead_code)]
