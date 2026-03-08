@@ -9,6 +9,7 @@ mod sources;
 use std::sync::Arc;
 
 use axum::Router;
+use axum::response::Html;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
@@ -53,6 +54,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Build application router
     let app = Router::new()
+        // Admin page route
+        .route("/admin", axum::routing::get(admin_page))
         // API routes
         .merge(api::api_router())
         // Serve static files (dashboard)
@@ -72,4 +75,12 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+/// Serve admin.html page
+async fn admin_page() -> Html<String> {
+    match tokio::fs::read_to_string("static/admin.html").await {
+        Ok(content) => Html(content),
+        Err(_) => Html("<h1>Admin page not found</h1>".to_string()),
+    }
 }

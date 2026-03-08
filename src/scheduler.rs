@@ -22,6 +22,11 @@ pub async fn start_schedulers(db: Database, config: Arc<AppConfig>) {
             Ok(count) => info!(count = count, "Initial source sync complete"),
             Err(e) => error!(error = %e, "Initial source sync failed"),
         }
+        // Also sync subscription sources from DB
+        match sources::sync_subscription_sources(&db_source).await {
+            Ok(count) => info!(count = count, "Initial subscription sync complete"),
+            Err(e) => error!(error = %e, "Initial subscription sync failed"),
+        }
 
         let mut ticker = interval(Duration::from_secs(interval_secs));
         ticker.tick().await; // Skip immediate tick (already ran)
@@ -31,6 +36,11 @@ pub async fn start_schedulers(db: Database, config: Arc<AppConfig>) {
             match sources::sync_sources(&db_source, &config_source.sources.providers).await {
                 Ok(count) => info!(count = count, "Source sync complete"),
                 Err(e) => error!(error = %e, "Source sync failed"),
+            }
+            // Sync subscription sources each cycle
+            match sources::sync_subscription_sources(&db_source).await {
+                Ok(count) => info!(count = count, "Subscription sync complete"),
+                Err(e) => error!(error = %e, "Subscription sync failed"),
             }
         }
     });

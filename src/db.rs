@@ -4,6 +4,7 @@ use chrono::{NaiveDateTime, Utc};
 
 use crate::models::{
     CheckLog, CountryCount, LatencyBucket, ProtocolCount, Proxy, ProxyStats, ScoreBucket,
+    SubscriptionSource,
 };
 
 #[derive(Clone)]
@@ -95,6 +96,28 @@ impl Database {
 
         sqlx::query(
             "CREATE INDEX IF NOT EXISTS idx_check_logs_proxy ON check_logs(proxy_id, checked_at DESC);",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Subscription sources table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS subscription_sources (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                source_type TEXT NOT NULL DEFAULT 'url',
+                url TEXT,
+                content TEXT,
+                protocol_hint TEXT NOT NULL DEFAULT 'auto',
+                is_enabled INTEGER NOT NULL DEFAULT 1,
+                proxy_count INTEGER NOT NULL DEFAULT 0,
+                last_sync_at TEXT,
+                last_error TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            "#,
         )
         .execute(&self.pool)
         .await?;
@@ -522,5 +545,170 @@ impl Database {
         .await?;
 
         Ok(result.rows_affected())
+    }
+
+    // ── Admin: Proxy Management ──
+
+    pub async fn delete_proxy(&self, id: i64) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM proxies WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn delete_all_dead_proxies(&self) -> Result<u64> {
+        let result = sqlx::query("DELETE FROM proxies WHERE is_alive = 0")
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected())
+    }
+
+    pub async fn get_all_proxies_admin(&self, page: i64, per_page: i64, filter_alive: Option<bool>, filter_protocol: Option<&str>) -> Result<(Vec<Proxy>, i64)> {
+        let offset = (page - 1) * per_page;
+
+        let mut where_clauses = Vec::new();
+        if let Some(alive) = filter_alive {
+            where_clauses.push(format!("is_alive = {}", if alive { 1 } else { 0 }));
+        }
+        if let Some(proto) = filter_protocol {
+            if !proto.is_empty() && proto != "all" {
+                where_clauses.push(format!("protocol = '{}'", proto.replace('\'', "''")));
+            }
+        }
+
+        let where_sql = if where_clauses.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", where_clauses.join(" AND "))
+        };
+
+        let count_sql = format!("SELECT COUNT(*) FROM proxies {}", where_sql);
+        let total: (i64,) = sqlx::query_as(&count_sql)
+            .fetch_one(&self.pool)
+            .await?;
+
+        let query_sql = format!(
+            r#"
+            SELECT id, ip, port, protocol, anonymity, country, score,
+                   is_alive, success_count, fail_count, consecutive_fails,
+                   avg_latency_ms, last_check_at, last_success_at, next_check_at,
+                   created_at, updated_at, source
+            FROM proxies {}
+            ORDER BY updated_at DESC
+            LIMIT ? OFFSET ?
+            "#,
+            where_sql
+        );
+
+        let proxies = sqlx::query_as::<_, Proxy>(&query_sql)
+            .bind(per_page)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok((proxies, total.0))
+    }
+
+    // ── Admin: Subscription Sources ──
+
+    pub async fn create_subscription_source(
+        &self,
+        name: &str,
+        source_type: &str,
+        url: Option<&str>,
+        content: Option<&str>,
+        protocol_hint: &str,
+    ) -> Result<i64> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO subscription_sources (name, source_type, url, content, protocol_hint, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            RETURNING id
+            "#,
+        )
+        .bind(name)
+        .bind(source_type)
+        .bind(url)
+        .bind(content)
+        .bind(protocol_hint)
+        .fetch_one(&self.pool)
+        .await?;
+
+        let id: i64 = sqlx::Row::get(&result, "id");
+        Ok(id)
+    }
+
+    pub async fn get_all_subscription_sources(&self) -> Result<Vec<SubscriptionSource>> {
+        let sources = sqlx::query_as::<_, SubscriptionSource>(
+            r#"
+            SELECT id, name, source_type, url, content, protocol_hint, is_enabled,
+                   proxy_count, last_sync_at, last_error, created_at, updated_at
+            FROM subscription_sources
+            ORDER BY created_at DESC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(sources)
+    }
+
+    pub async fn get_enabled_subscription_sources(&self) -> Result<Vec<SubscriptionSource>> {
+        let sources = sqlx::query_as::<_, SubscriptionSource>(
+            r#"
+            SELECT id, name, source_type, url, content, protocol_hint, is_enabled,
+                   proxy_count, last_sync_at, last_error, created_at, updated_at
+            FROM subscription_sources
+            WHERE is_enabled = 1
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(sources)
+    }
+
+    pub async fn delete_subscription_source(&self, id: i64) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM subscription_sources WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn toggle_subscription_source(&self, id: i64, enabled: bool) -> Result<bool> {
+        let result = sqlx::query(
+            "UPDATE subscription_sources SET is_enabled = ?, updated_at = datetime('now') WHERE id = ?",
+        )
+        .bind(enabled)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn update_subscription_sync_result(
+        &self,
+        id: i64,
+        proxy_count: i64,
+        error: Option<&str>,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE subscription_sources SET
+                proxy_count = ?,
+                last_sync_at = datetime('now'),
+                last_error = ?,
+                updated_at = datetime('now')
+            WHERE id = ?
+            "#,
+        )
+        .bind(proxy_count)
+        .bind(error)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }

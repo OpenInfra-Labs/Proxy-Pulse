@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy Pulse — Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* ─── Admin-specific styles ─── */
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            margin-right: 16px;
+        }
+        .nav-link {
+            padding: 6px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+        .nav-link:hover {
+            color: var(--accent-cyan);
+            border-color: var(--border-accent);
+            background: rgba(0, 240, 255, 0.05);
+        }
+        .nav-link.active {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.08);
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+            margin-bottom: 24px;
+            width: fit-content;
+        }
+        .admin-tab {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+        .admin-tab:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.04);
+        }
+        .admin-tab.active {
+            color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Section cards */
+        .admin-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(16px);
+        }
+        .admin-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .admin-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .admin-section-title .icon {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-cyan);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(0, 240, 255, 0.2);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.35);
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: var(--gradient-danger);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(255, 71, 87, 0.2);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.35);
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+        .btn-outline:hover {
+            color: var(--accent-cyan);
+            border-color: var(--border-accent);
+            background: rgba(0, 240, 255, 0.05);
+        }
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 0.78rem;
+        }
+        .btn-icon {
+            padding: 6px;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(10, 14, 26, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            box-sizing: border-box;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1);
+        }
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892b0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+            cursor: pointer;
+        }
+        .form-textarea {
+            min-height: 140px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .form-hint {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* Data table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .data-table td {
+            padding: 10px 14px;
+            font-size: 0.84rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .data-table tbody tr {
+            transition: var(--transition);
+        }
+        .data-table tbody tr:hover {
+            background: rgba(0, 240, 255, 0.03);
+        }
+        .data-table .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge-alive {
+            background: rgba(0, 230, 138, 0.12);
+            color: var(--accent-green);
+            border: 1px solid rgba(0, 230, 138, 0.2);
+        }
+        .badge-dead {
+            background: rgba(255, 71, 87, 0.12);
+            color: var(--accent-red);
+            border: 1px solid rgba(255, 71, 87, 0.2);
+        }
+        .badge-protocol {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+        }
+        .badge-enabled {
+            background: rgba(0, 230, 138, 0.12);
+            color: var(--accent-green);
+            border: 1px solid rgba(0, 230, 138, 0.2);
+        }
+        .badge-disabled {
+            background: rgba(255, 71, 87, 0.12);
+            color: var(--accent-red);
+            border: 1px solid rgba(255, 71, 87, 0.2);
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            cursor: pointer;
+        }
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 22px;
+            transition: var(--transition);
+        }
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+        .toggle input:checked + .toggle-slider {
+            background: rgba(0, 230, 138, 0.3);
+        }
+        .toggle input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+            background: var(--accent-green);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .pagination-info {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-right: auto;
+        }
+        .page-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-bar .form-select, .filter-bar .form-input {
+            width: auto;
+            min-width: 140px;
+        }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            animation: toastIn 0.3s ease;
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            min-width: 240px;
+        }
+        .toast-success {
+            background: rgba(0, 230, 138, 0.15);
+            color: var(--accent-green);
+            border-color: rgba(0, 230, 138, 0.25);
+        }
+        .toast-error {
+            background: rgba(255, 71, 87, 0.15);
+            color: var(--accent-red);
+            border-color: rgba(255, 71, 87, 0.25);
+        }
+        .toast-info {
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--accent-cyan);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Source error tooltip */
+        .error-text {
+            max-width: 220px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--accent-red);
+            font-size: 0.78rem;
+            cursor: help;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-dim);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* Action buttons in table row */
+        .row-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* Score coloring */
+        .score-high  { color: var(--accent-green); }
+        .score-mid   { color: var(--accent-orange); }
+        .score-low   { color: var(--accent-red); }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            gap: 10px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .table-wrapper { overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <!-- Animated background -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14" stroke="url(#grad1)" stroke-width="2"/>
+                        <circle cx="16" cy="16" r="8" stroke="url(#grad1)" stroke-width="2" stroke-dasharray="4 3"/>
+                        <circle cx="16" cy="16" r="3" fill="url(#grad1)"/>
+                        <defs>
+                            <linearGradient id="grad1" x1="0" y1="0" x2="32" y2="32">
+                                <stop offset="0%" stop-color="#00f0ff"/>
+                                <stop offset="100%" stop-color="#7b61ff"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>Proxy Pulse</h1>
+                    <span class="logo-subtitle">Admin Control Panel</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="nav-links">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/admin" class="nav-link active">Admin</a>
+            </div>
+            <div class="status-pill" id="systemStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">System Online</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="proxies">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+                Proxy Management
+            </button>
+            <button class="admin-tab" data-tab="sources">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                </svg>
+                Subscription Sources
+            </button>
+            <button class="admin-tab" data-tab="import">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Bulk Import
+            </button>
+        </div>
+
+        <!-- ═══ Tab: Proxy Management ═══ -->
+        <div class="tab-panel active" id="panel-proxies">
+            <div class="admin-section">
+                <div class="admin-section-header">
+                    <div class="admin-section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        All Proxies
+                    </div>
+                    <div class="filter-bar">
+                        <select class="form-select" id="filterProtocol">
+                            <option value="all">All Protocols</option>
+                            <option value="http">HTTP</option>
+                            <option value="https">HTTPS</option>
+                            <option value="socks4">SOCKS4</option>
+                            <option value="socks5">SOCKS5</option>
+                        </select>
+                        <select class="form-select" id="filterAlive">
+                            <option value="">All Status</option>
+                            <option value="true">Alive</option>
+                            <option value="false">Dead</option>
+                        </select>
+                        <button class="btn btn-danger btn-sm" onclick="deleteDeadProxies()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Purge Dead
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="loadProxies()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="proxyTable">
+                        <thead>
+                            <tr>
+                                <th>Proxy</th>
+                                <th>Protocol</th>
+                                <th>Country</th>
+                                <th>Status</th>
+                                <th>Score</th>
+                                <th>Latency</th>
+                                <th>Success / Fail</th>
+                                <th>Source</th>
+                                <th>Last Check</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proxyTableBody">
+                            <tr><td colspan="10"><div class="loading-overlay"><span class="spinner"></span> Loading proxies...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="proxyPagination"></div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab: Subscription Sources ═══ -->
+        <div class="tab-panel" id="panel-sources">
+            <!-- Add Source Form -->
+            <div class="admin-section">
+                <div class="admin-section-header">
+                    <div class="admin-section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Subscription Source
+                    </div>
+                </div>
+                <form id="addSourceForm" onsubmit="addSource(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Source Name</label>
+                            <input type="text" class="form-input" id="sourceName" placeholder="e.g. Free Proxy List #1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Source Type</label>
+                            <select class="form-select" id="sourceType" onchange="toggleSourceFields()">
+                                <option value="url">URL Subscription</option>
+                                <option value="text">Text / Paste List</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="sourceUrlGroup">
+                        <label class="form-label">Subscription URL</label>
+                        <input type="url" class="form-input" id="sourceUrl" placeholder="https://example.com/proxy-list.txt">
+                        <p class="form-hint">TXT subscription link that returns one proxy per line (ip:port or protocol://ip:port)</p>
+                    </div>
+                    <div class="form-group" id="sourceContentGroup" style="display:none;">
+                        <label class="form-label">Proxy List Content</label>
+                        <textarea class="form-textarea" id="sourceContent" placeholder="192.168.1.1:8080&#10;socks5://10.0.0.1:1080&#10;10.0.0.2:1080:socks4"></textarea>
+                        <p class="form-hint">One proxy per line. Supports: ip:port, protocol://ip:port, ip:port:protocol</p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Protocol Override</label>
+                            <select class="form-select" id="sourceProtocol">
+                                <option value="auto">Auto Detect</option>
+                                <option value="http">HTTP</option>
+                                <option value="https">HTTPS</option>
+                                <option value="socks4">SOCKS4</option>
+                                <option value="socks5">SOCKS5</option>
+                            </select>
+                            <p class="form-hint">Override the protocol for all proxies in this source, or use auto to keep the parsed protocol</p>
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:26px;">
+                            <button type="submit" class="btn btn-primary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Add Source
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Source List -->
+            <div class="admin-section">
+                <div class="admin-section-header">
+                    <div class="admin-section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                        </svg>
+                        Active Sources
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="syncAllSources()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                        </svg>
+                        Sync All Now
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="sourceTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>URL / Content</th>
+                                <th>Protocol</th>
+                                <th>Proxies</th>
+                                <th>Enabled</th>
+                                <th>Last Sync</th>
+                                <th>Error</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sourceTableBody">
+                            <tr><td colspan="9"><div class="loading-overlay"><span class="spinner"></span> Loading sources...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab: Bulk Import ═══ -->
+        <div class="tab-panel" id="panel-import">
+            <div class="admin-section">
+                <div class="admin-section-header">
+                    <div class="admin-section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Quick Bulk Import
+                    </div>
+                </div>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:20px;">
+                    Paste a list of proxies below to import them immediately into the pool. They will be queued for health checking automatically.
+                </p>
+                <form id="importForm" onsubmit="importProxies(event)">
+                    <div class="form-group">
+                        <label class="form-label">Proxy List</label>
+                        <textarea class="form-textarea" id="importContent" rows="10" required
+                            placeholder="# Paste proxies here, one per line&#10;# Supported formats:&#10;# 192.168.1.1:8080&#10;# socks5://10.0.0.1:1080&#10;# 10.0.0.2:1080:socks4&#10;#&#10;# Lines starting with # or // are ignored"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Protocol Override</label>
+                            <select class="form-select" id="importProtocol">
+                                <option value="auto">Auto Detect</option>
+                                <option value="http">HTTP</option>
+                                <option value="https">HTTPS</option>
+                                <option value="socks4">SOCKS4</option>
+                                <option value="socks5">SOCKS5</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;gap:12px;padding-bottom:2px;">
+                            <button type="submit" class="btn btn-primary" id="importBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                Import Proxies
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="document.getElementById('importContent').value=''">Clear</button>
+                        </div>
+                    </div>
+                </form>
+                <div id="importResult" style="display:none; margin-top:16px;"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    // ═══════════════════════════════════════════════
+    //  Admin Panel Logic
+    // ═══════════════════════════════════════════════
+
+    const API = '/api/v1/admin';
+    let proxyPage = 1;
+    const proxyPerPage = 25;
+
+    // ─── Tab Switching ───
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ─── Toast Notifications ───
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(40px)'; }, 3000);
+        setTimeout(() => container.removeChild(toast), 3500);
+    }
+
+    // ─── Source Form: Toggle URL vs Text fields ───
+    function toggleSourceFields() {
+        const type = document.getElementById('sourceType').value;
+        document.getElementById('sourceUrlGroup').style.display = type === 'url' ? 'block' : 'none';
+        document.getElementById('sourceContentGroup').style.display = type === 'text' ? 'block' : 'none';
+    }
+
+    // ─── Score Color Helper ───
+    function scoreClass(score) {
+        if (score >= 70) return 'score-high';
+        if (score >= 40) return 'score-mid';
+        return 'score-low';
+    }
+
+    // ═══════════════════════════════════
+    //  Proxy Management
+    // ═══════════════════════════════════
+
+    async function loadProxies() {
+        const protocol = document.getElementById('filterProtocol').value;
+        const alive = document.getElementById('filterAlive').value;
+        const params = new URLSearchParams({ page: proxyPage, per_page: proxyPerPage });
+        if (protocol !== 'all') params.set('protocol', protocol);
+        if (alive !== '') params.set('alive', alive);
+
+        const tbody = document.getElementById('proxyTableBody');
+        tbody.innerHTML = '<tr><td colspan="10"><div class="loading-overlay"><span class="spinner"></span> Loading...</div></td></tr>';
+
+        try {
+            const resp = await fetch(`${API}/proxy/list?${params}`);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error);
+
+            const { proxies, total, page, per_page } = json.data;
+            if (proxies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><p>No proxies found</p></div></td></tr>';
+                document.getElementById('proxyPagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = proxies.map(p => `
+                <tr>
+                    <td class="mono">${escHtml(p.proxy)}</td>
+                    <td><span class="badge badge-protocol">${escHtml(p.protocol.toUpperCase())}</span></td>
+                    <td>${escHtml(p.country)}</td>
+                    <td><span class="badge ${p.is_alive ? 'badge-alive' : 'badge-dead'}">${p.is_alive ? 'ALIVE' : 'DEAD'}</span></td>
+                    <td class="${scoreClass(p.score)}" style="font-weight:600;">${p.score.toFixed(1)}</td>
+                    <td class="mono">${p.latency_ms > 0 ? p.latency_ms.toFixed(0) + 'ms' : '—'}</td>
+                    <td><span style="color:var(--accent-green)">${p.success_count}</span> / <span style="color:var(--accent-red)">${p.fail_count}</span></td>
+                    <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(p.source)}">${escHtml(p.source)}</td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${p.last_check_at || '—'}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn btn-danger btn-icon btn-sm" onclick="deleteProxy(${p.id})" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Pagination
+            const totalPages = Math.ceil(total / per_page);
+            let pagHtml = `<span class="pagination-info">Showing ${(page-1)*per_page+1}–${Math.min(page*per_page, total)} of ${total}</span>`;
+            pagHtml += `<button class="btn btn-outline page-btn" onclick="goToPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>← Prev</button>`;
+            // Show up to 5 page numbers
+            const startP = Math.max(1, page - 2);
+            const endP = Math.min(totalPages, startP + 4);
+            for (let i = startP; i <= endP; i++) {
+                pagHtml += `<button class="btn ${i === page ? 'btn-primary' : 'btn-outline'} page-btn" onclick="goToPage(${i})">${i}</button>`;
+            }
+            pagHtml += `<button class="btn btn-outline page-btn" onclick="goToPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Next →</button>`;
+            document.getElementById('proxyPagination').innerHTML = pagHtml;
+
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><p style="color:var(--accent-red)">Error: ${escHtml(e.message)}</p></div></td></tr>`;
+        }
+    }
+
+    function goToPage(p) {
+        if (p < 1) return;
+        proxyPage = p;
+        loadProxies();
+    }
+
+    async function deleteProxy(id) {
+        if (!confirm('Delete this proxy?')) return;
+        try {
+            const resp = await fetch(`${API}/proxy/delete/${id}`, { method: 'POST' });
+            const json = await resp.json();
+            if (json.success) {
+                showToast('Proxy deleted', 'success');
+                loadProxies();
+            } else {
+                showToast('Failed: ' + json.error, 'error');
+            }
+        } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    }
+
+    async function deleteDeadProxies() {
+        if (!confirm('Delete ALL dead proxies? This cannot be undone.')) return;
+        try {
+            const resp = await fetch(`${API}/proxy/purge-dead`, { method: 'POST' });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(`Purged ${json.data.deleted} dead proxies`, 'success');
+                loadProxies();
+            } else {
+                showToast('Failed: ' + json.error, 'error');
+            }
+        } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    }
+
+    // Filter change listeners
+    document.getElementById('filterProtocol').addEventListener('change', () => { proxyPage = 1; loadProxies(); });
+    document.getElementById('filterAlive').addEventListener('change', () => { proxyPage = 1; loadProxies(); });
+
+    // ═══════════════════════════════════
+    //  Subscription Sources
+    // ═══════════════════════════════════
+
+    async function loadSources() {
+        const tbody = document.getElementById('sourceTableBody');
+        tbody.innerHTML = '<tr><td colspan="9"><div class="loading-overlay"><span class="spinner"></span> Loading...</div></td></tr>';
+
+        try {
+            const resp = await fetch(`${API}/source/list`);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error);
+
+            const sources = json.data;
+            if (sources.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>No subscription sources configured. Add one above!</p></div></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sources.map(s => `
+                <tr>
+                    <td style="font-weight:500;">${escHtml(s.name)}</td>
+                    <td><span class="badge badge-protocol">${s.source_type.toUpperCase()}</span></td>
+                    <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" 
+                        title="${escHtml(s.url || 'Inline text content')}">${escHtml(s.url || '(inline text)')}</td>
+                    <td><span class="badge badge-protocol">${s.protocol_hint.toUpperCase()}</span></td>
+                    <td style="font-weight:600;color:var(--accent-cyan);">${s.proxy_count}</td>
+                    <td>
+                        <label class="toggle">
+                            <input type="checkbox" ${s.is_enabled ? 'checked' : ''} onchange="toggleSource(${s.id}, this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${s.last_sync_at || '—'}</td>
+                    <td>${s.last_error ? `<span class="error-text" title="${escHtml(s.last_error)}">${escHtml(s.last_error)}</span>` : '<span style="color:var(--accent-green)">OK</span>'}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn btn-danger btn-icon btn-sm" onclick="deleteSource(${s.id})" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch(e) {
+            tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><p style="color:var(--accent-red)">Error: ${escHtml(e.message)}</p></div></td></tr>`;
+        }
+    }
+
+    async function addSource(e) {
+        e.preventDefault();
+        const name = document.getElementById('sourceName').value.trim();
+        const type = document.getElementById('sourceType').value;
+        const url = document.getElementById('sourceUrl').value.trim();
+        const content = document.getElementById('sourceContent').value.trim();
+        const protocol = document.getElementById('sourceProtocol').value;
+
+        const body = { name, source_type: type, protocol_hint: protocol };
+        if (type === 'url') body.url = url;
+        if (type === 'text') body.content = content;
+
+        try {
+            const resp = await fetch(`${API}/source/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const json = await resp.json();
+            if (json.success) {
+                showToast('Source added successfully (ID: ' + json.data + ')', 'success');
+                document.getElementById('addSourceForm').reset();
+                toggleSourceFields();
+                loadSources();
+            } else {
+                showToast('Failed: ' + json.error, 'error');
+            }
+        } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    }
+
+    async function deleteSource(id) {
+        if (!confirm('Delete this subscription source?')) return;
+        try {
+            const resp = await fetch(`${API}/source/delete/${id}`, { method: 'POST' });
+            const json = await resp.json();
+            if (json.success) {
+                showToast('Source deleted', 'success');
+                loadSources();
+            } else {
+                showToast('Failed: ' + json.error, 'error');
+            }
+        } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    }
+
+    async function toggleSource(id, enabled) {
+        try {
+            const resp = await fetch(`${API}/source/${id}/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled }),
+            });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(`Source ${enabled ? 'enabled' : 'disabled'}`, 'success');
+            } else {
+                showToast('Failed: ' + json.error, 'error');
+            }
+        } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    }
+
+    async function syncAllSources() {
+        showToast('Syncing all sources...', 'info');
+        try {
+            const resp = await fetch(`${API}/source/sync`, { method: 'POST' });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(`Sync complete — ${json.data.synced} proxies imported`, 'success');
+                loadSources();
+                loadProxies();
+            } else {
+                showToast('Sync failed: ' + json.error, 'error');
+            }
+        } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    }
+
+    // ═══════════════════════════════════
+    //  Bulk Import
+    // ═══════════════════════════════════
+
+    async function importProxies(e) {
+        e.preventDefault();
+        const content = document.getElementById('importContent').value.trim();
+        const protocol = document.getElementById('importProtocol').value;
+        const resultDiv = document.getElementById('importResult');
+
+        if (!content) {
+            showToast('Please paste some proxies first', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('importBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Importing...';
+
+        try {
+            const resp = await fetch(`${API}/proxy/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, protocol_hint: protocol }),
+            });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(`Successfully imported ${json.data.imported} proxies!`, 'success');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div style="padding:16px;background:rgba(0,230,138,0.08);border:1px solid rgba(0,230,138,0.2);border-radius:10px;color:var(--accent-green);display:flex;align-items:center;gap:10px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;flex-shrink:0;">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <strong>${json.data.imported} proxies</strong> imported successfully. They will be checked in the next cycle.
+                    </div>
+                `;
+            } else {
+                showToast('Import failed: ' + json.error, 'error');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<div style="padding:16px;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.2);border-radius:10px;color:var(--accent-red);">Error: ${escHtml(json.error)}</div>`;
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Import Proxies`;
+        }
+    }
+
+    // ─── HTML Escape Helper ───
+    function escHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ─── Initialize ───
+    loadProxies();
+    loadSources();
+
+    // Update header time
+    function updateTime() {
+        const now = new Date();
+        const el = document.getElementById('headerTime');
+        if (el) el.textContent = now.toLocaleTimeString('en-US', { hour12: false });
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+    </script>
+</body>
+</html>

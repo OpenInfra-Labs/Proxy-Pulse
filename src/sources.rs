@@ -73,7 +73,7 @@ async fn load_from_url(url: &str) -> Result<Vec<RawProxy>> {
 ///   ip:port
 ///   protocol://ip:port
 ///   ip:port:protocol
-fn parse_proxy_list(content: &str) -> Vec<RawProxy> {
+pub fn parse_proxy_list(content: &str) -> Vec<RawProxy> {
     let mut proxies = Vec::new();
 
     for line in content.lines() {
@@ -133,12 +133,78 @@ fn parse_proxy_line(line: &str) -> Option<RawProxy> {
 }
 
 /// Import parsed proxies into the database (deduplication via upsert)
-async fn import_proxies(db: &Database, proxies: &[RawProxy], source: &str) -> Result<usize> {
+pub async fn import_proxies(db: &Database, proxies: &[RawProxy], source: &str) -> Result<usize> {
     let mut count = 0;
     for proxy in proxies {
         db.upsert_proxy(&proxy.ip, proxy.port, &proxy.protocol, source)
             .await?;
         count += 1;
     }
+    Ok(count)
+}
+
+/// Import proxies with an explicit protocol hint override
+/// If protocol_hint is "auto", use the protocol parsed from the line
+pub async fn import_proxies_with_hint(
+    db: &Database,
+    proxies: &[RawProxy],
+    source: &str,
+    protocol_hint: &str,
+) -> Result<usize> {
+    let mut count = 0;
+    for proxy in proxies {
+        let protocol = if protocol_hint == "auto" {
+            &proxy.protocol
+        } else {
+            protocol_hint
+        };
+        db.upsert_proxy(&proxy.ip, proxy.port, protocol, source)
+            .await?;
+        count += 1;
+    }
+    Ok(count)
+}
+
+/// Synchronize subscription sources from the database
+pub async fn sync_subscription_sources(db: &Database) -> Result<usize> {
+    let sources = db.get_enabled_subscription_sources().await?;
+    let mut total = 0;
+
+    for source in &sources {
+        let result = sync_single_subscription(db, source).await;
+        match result {
+            Ok(count) => {
+                db.update_subscription_sync_result(source.id, count as i64, None).await?;
+                info!(source_id = source.id, name = %source.name, count = count, "Subscription synced");
+                total += count;
+            }
+            Err(e) => {
+                db.update_subscription_sync_result(source.id, 0, Some(&e.to_string())).await?;
+                warn!(source_id = source.id, name = %source.name, error = %e, "Subscription sync failed");
+            }
+        }
+    }
+
+    Ok(total)
+}
+
+async fn sync_single_subscription(
+    db: &Database,
+    source: &crate::models::SubscriptionSource,
+) -> Result<usize> {
+    let proxies = match source.source_type.as_str() {
+        "url" => {
+            let url = source.url.as_deref().ok_or_else(|| anyhow::anyhow!("URL is empty"))?;
+            load_from_url(url).await?
+        }
+        "text" => {
+            let content = source.content.as_deref().unwrap_or("");
+            parse_proxy_list(content)
+        }
+        _ => return Err(anyhow::anyhow!("Unknown source type: {}", source.source_type)),
+    };
+
+    let source_tag = format!("sub:{}:{}", source.id, source.name);
+    let count = import_proxies_with_hint(db, &proxies, &source_tag, &source.protocol_hint).await?;
     Ok(count)
 }
