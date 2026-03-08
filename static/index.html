@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy Pulse — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14" stroke="url(#grad1)" stroke-width="2"/>
+                        <circle cx="16" cy="16" r="8" stroke="url(#grad1)" stroke-width="2" stroke-dasharray="4 3"/>
+                        <circle cx="16" cy="16" r="3" fill="url(#grad1)"/>
+                        <defs>
+                            <linearGradient id="grad1" x1="0" y1="0" x2="32" y2="32">
+                                <stop offset="0%" stop-color="#00f0ff"/>
+                                <stop offset="100%" stop-color="#7b61ff"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>Proxy Pulse</h1>
+                    <span class="logo-subtitle">Network Monitoring System</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-pill" id="systemStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">System Online</span>
+            </div>
+            <div class="header-time" id="headerTime"></div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Stats Cards Row -->
+        <section class="stats-row">
+            <div class="stat-card stat-card-total">
+                <div class="stat-card-inner">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalProxies">—</div>
+                        <div class="stat-label">Total Proxies</div>
+                    </div>
+                    <div class="stat-trend" id="totalTrend"></div>
+                </div>
+                <div class="stat-bar"><div class="stat-bar-fill" id="totalBar"></div></div>
+            </div>
+
+            <div class="stat-card stat-card-alive">
+                <div class="stat-card-inner">
+                    <div class="stat-icon alive">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="aliveProxies">—</div>
+                        <div class="stat-label">Alive Proxies</div>
+                    </div>
+                    <div class="stat-percentage" id="alivePercentage">—</div>
+                </div>
+                <div class="stat-bar"><div class="stat-bar-fill alive" id="aliveBar"></div></div>
+            </div>
+
+            <div class="stat-card stat-card-dead">
+                <div class="stat-card-inner">
+                    <div class="stat-icon dead">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="deadProxies">—</div>
+                        <div class="stat-label">Dead Proxies</div>
+                    </div>
+                </div>
+                <div class="stat-bar"><div class="stat-bar-fill dead" id="deadBar"></div></div>
+            </div>
+
+            <div class="stat-card stat-card-score">
+                <div class="stat-card-inner">
+                    <div class="stat-icon score">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="avgScore">—</div>
+                        <div class="stat-label">Avg Score</div>
+                    </div>
+                </div>
+                <div class="stat-bar"><div class="stat-bar-fill score" id="scoreBar"></div></div>
+            </div>
+
+            <div class="stat-card stat-card-latency">
+                <div class="stat-card-inner">
+                    <div class="stat-icon latency">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="avgLatency">—</div>
+                        <div class="stat-label">Avg Latency</div>
+                    </div>
+                </div>
+                <div class="stat-bar"><div class="stat-bar-fill latency" id="latencyBar"></div></div>
+            </div>
+        </section>
+
+        <!-- Charts Row -->
+        <section class="charts-row">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Country Distribution</h3>
+                    <span class="chart-badge">GeoIP</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="countryChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Latency Distribution</h3>
+                    <span class="chart-badge">ms</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>Protocol Mix</h3>
+                    <span class="chart-badge">Type</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="protocolChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Score Distribution + Proxy Table -->
+        <section class="bottom-row">
+            <div class="chart-card score-dist-card">
+                <div class="chart-header">
+                    <h3>Score Distribution</h3>
+                    <span class="chart-badge">Health</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Top Proxies</h3>
+                    <div class="table-controls">
+                        <button class="btn-refresh" id="refreshBtn" title="Refresh">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Proxy</th>
+                                <th>Protocol</th>
+                                <th>Country</th>
+                                <th>Score</th>
+                                <th>Latency</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proxyTableBody">
+                            <tr>
+                                <td colspan="6" class="table-empty">Loading proxies...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span>Proxy Pulse v0.1.0</span>
+        <span class="footer-divider">|</span>
+        <span>Open Source Proxy Pool Management</span>
+        <span class="footer-divider">|</span>
+        <span id="lastUpdate">Last update: —</span>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

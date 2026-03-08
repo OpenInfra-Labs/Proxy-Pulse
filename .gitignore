@@ -1,3 +1,15 @@
+# ─── Rust / Cargo ───
+/target/
+Cargo.lock
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ─── Proxy Pulse ───
+proxy_pulse.db
+config.yaml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

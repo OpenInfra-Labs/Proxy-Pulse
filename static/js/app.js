@@ -1,0 +1,410 @@
+/* ─────────────────────────────────────────────
+   Proxy Pulse — Dashboard Application Logic
+   ───────────────────────────────────────────── */
+
+const API_BASE = '/api/v1';
+const REFRESH_INTERVAL = 30000; // 30 seconds
+
+// Chart instances
+let countryChart = null;
+let latencyChart = null;
+let protocolChart = null;
+let scoreChart = null;
+
+// ─── Chart.js Global Defaults ───
+Chart.defaults.color = '#8892b0';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
+Chart.defaults.plugins.legend.labels.padding = 14;
+
+// Palette
+const COLORS = {
+    cyan: '#00f0ff',
+    purple: '#7b61ff',
+    green: '#00e68a',
+    red: '#ff4757',
+    orange: '#ffa502',
+    blue: '#3b82f6',
+    pink: '#f472b6',
+    teal: '#2dd4bf',
+    yellow: '#facc15',
+    indigo: '#818cf8',
+};
+
+const CHART_PALETTE = [
+    '#00f0ff', '#7b61ff', '#00e68a', '#ffa502', '#3b82f6',
+    '#f472b6', '#2dd4bf', '#facc15', '#818cf8', '#ff4757',
+    '#a78bfa', '#34d399', '#60a5fa', '#fbbf24', '#fb923c',
+    '#e879f9', '#38bdf8', '#4ade80', '#f87171', '#c084fc',
+];
+
+// ─── Initialize ───
+document.addEventListener('DOMContentLoaded', () => {
+    updateTime();
+    setInterval(updateTime, 1000);
+    initCharts();
+    fetchAllData();
+    setInterval(fetchAllData, REFRESH_INTERVAL);
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        const btn = document.getElementById('refreshBtn');
+        btn.classList.add('spinning');
+        fetchAllData().then(() => {
+            setTimeout(() => btn.classList.remove('spinning'), 500);
+        });
+    });
+});
+
+// ─── Time Display ───
+function updateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
+    const dateStr = now.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+    document.getElementById('headerTime').textContent = `${dateStr}  ${timeStr}`;
+}
+
+// ─── Fetch All Data ───
+async function fetchAllData() {
+    try {
+        const [statsRes, topRes] = await Promise.all([
+            fetch(`${API_BASE}/proxy/stats`),
+            fetch(`${API_BASE}/proxy/top?limit=20`),
+        ]);
+
+        if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            if (statsData.success) {
+                updateStats(statsData.data);
+                updateCharts(statsData.data);
+            }
+        }
+
+        if (topRes.ok) {
+            const topData = await topRes.json();
+            if (topData.success) {
+                updateTable(topData.data.proxies);
+            }
+        }
+
+        document.getElementById('lastUpdate').textContent =
+            `Last update: ${new Date().toLocaleTimeString('en-US', { hour12: false })}`;
+    } catch (err) {
+        console.error('Failed to fetch data:', err);
+    }
+}
+
+// ─── Update Stats Cards ───
+function updateStats(stats) {
+    animateValue('totalProxies', stats.total_proxies);
+    animateValue('aliveProxies', stats.alive_proxies);
+    animateValue('deadProxies', stats.dead_proxies);
+
+    const avgScore = stats.avg_score ? stats.avg_score.toFixed(1) : '0';
+    document.getElementById('avgScore').textContent = avgScore;
+
+    const avgLatency = stats.avg_latency_ms ? `${stats.avg_latency_ms.toFixed(0)}ms` : '—';
+    document.getElementById('avgLatency').textContent = avgLatency;
+
+    // Alive percentage
+    const pct = stats.total_proxies > 0
+        ? ((stats.alive_proxies / stats.total_proxies) * 100).toFixed(1) + '%'
+        : '—';
+    document.getElementById('alivePercentage').textContent = pct;
+
+    // Progress bars
+    const maxTotal = Math.max(stats.total_proxies, 1);
+    document.getElementById('totalBar').style.width = '100%';
+    document.getElementById('aliveBar').style.width =
+        `${(stats.alive_proxies / maxTotal) * 100}%`;
+    document.getElementById('deadBar').style.width =
+        `${(stats.dead_proxies / maxTotal) * 100}%`;
+    document.getElementById('scoreBar').style.width = `${stats.avg_score || 0}%`;
+
+    const latencyPct = stats.avg_latency_ms
+        ? Math.min((stats.avg_latency_ms / 2000) * 100, 100)
+        : 0;
+    document.getElementById('latencyBar').style.width = `${latencyPct}%`;
+}
+
+function animateValue(elementId, target) {
+    const el = document.getElementById(elementId);
+    const current = parseInt(el.textContent) || 0;
+    if (current === target) return;
+
+    const duration = 800;
+    const steps = 30;
+    const stepTime = duration / steps;
+    const increment = (target - current) / steps;
+    let value = current;
+    let step = 0;
+
+    const timer = setInterval(() => {
+        step++;
+        value += increment;
+        el.textContent = Math.round(value).toLocaleString();
+        if (step >= steps) {
+            el.textContent = target.toLocaleString();
+            clearInterval(timer);
+        }
+    }, stepTime);
+}
+
+// ─── Charts ───
+function initCharts() {
+    // Country - Doughnut
+    const countryCtx = document.getElementById('countryChart').getContext('2d');
+    countryChart = new Chart(countryCtx, {
+        type: 'doughnut',
+        data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0, hoverOffset: 6 }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { font: { size: 10 }, padding: 8 },
+                },
+            },
+        },
+    });
+
+    // Latency - Bar
+    const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+    latencyChart = new Chart(latencyCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Proxies',
+                data: [],
+                backgroundColor: createGradientBar(latencyCtx, '#00f0ff', '#7b61ff'),
+                borderRadius: 6,
+                borderSkipped: false,
+                maxBarThickness: 40,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.03)', drawTicks: false },
+                    border: { color: 'rgba(255,255,255,0.06)' },
+                    ticks: { font: { size: 10 } },
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.03)', drawTicks: false },
+                    border: { display: false },
+                    ticks: { font: { size: 10 } },
+                    beginAtZero: true,
+                },
+            },
+        },
+    });
+
+    // Protocol - Polar area
+    const protocolCtx = document.getElementById('protocolChart').getContext('2d');
+    protocolChart = new Chart(protocolCtx, {
+        type: 'polarArea',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    'rgba(0, 240, 255, 0.5)',
+                    'rgba(0, 230, 138, 0.5)',
+                    'rgba(123, 97, 255, 0.5)',
+                    'rgba(255, 165, 2, 0.5)',
+                ],
+                borderColor: [
+                    'rgba(0, 240, 255, 0.8)',
+                    'rgba(0, 230, 138, 0.8)',
+                    'rgba(123, 97, 255, 0.8)',
+                    'rgba(255, 165, 2, 0.8)',
+                ],
+                borderWidth: 1,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { font: { size: 10 }, padding: 8 },
+                },
+            },
+            scales: {
+                r: {
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { display: false },
+                },
+            },
+        },
+    });
+
+    // Score - Bar (horizontal)
+    const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+    scoreChart = new Chart(scoreCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Proxies',
+                data: [],
+                backgroundColor: [
+                    'rgba(255, 71, 87, 0.6)',
+                    'rgba(255, 165, 2, 0.6)',
+                    'rgba(250, 204, 21, 0.6)',
+                    'rgba(0, 230, 138, 0.6)',
+                    'rgba(0, 240, 255, 0.6)',
+                ],
+                borderRadius: 6,
+                borderSkipped: false,
+                maxBarThickness: 32,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.03)', drawTicks: false },
+                    border: { display: false },
+                    ticks: { font: { size: 10 } },
+                    beginAtZero: true,
+                },
+                y: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: { font: { size: 10 } },
+                },
+            },
+        },
+    });
+}
+
+function createGradientBar(ctx, color1, color2) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, color1);
+    gradient.addColorStop(1, color2);
+    return gradient;
+}
+
+function updateCharts(stats) {
+    // Country chart
+    if (stats.country_distribution && stats.country_distribution.length > 0) {
+        const labels = stats.country_distribution.map(c => c.country.toUpperCase());
+        const data = stats.country_distribution.map(c => c.count);
+        countryChart.data.labels = labels;
+        countryChart.data.datasets[0].data = data;
+        countryChart.data.datasets[0].backgroundColor = CHART_PALETTE.slice(0, labels.length);
+        countryChart.update('none');
+    }
+
+    // Latency chart
+    if (stats.latency_distribution && stats.latency_distribution.length > 0) {
+        latencyChart.data.labels = stats.latency_distribution.map(l => l.range);
+        latencyChart.data.datasets[0].data = stats.latency_distribution.map(l => l.count);
+        latencyChart.update('none');
+    }
+
+    // Protocol chart
+    if (stats.protocol_distribution && stats.protocol_distribution.length > 0) {
+        protocolChart.data.labels = stats.protocol_distribution.map(p => p.protocol.toUpperCase());
+        protocolChart.data.datasets[0].data = stats.protocol_distribution.map(p => p.count);
+        protocolChart.update('none');
+    }
+
+    // Score chart
+    if (stats.score_distribution && stats.score_distribution.length > 0) {
+        scoreChart.data.labels = stats.score_distribution.map(s => s.range);
+        scoreChart.data.datasets[0].data = stats.score_distribution.map(s => s.count);
+        scoreChart.update('none');
+    }
+}
+
+// ─── Proxy Table ───
+function updateTable(proxies) {
+    const tbody = document.getElementById('proxyTableBody');
+
+    if (!proxies || proxies.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="6" class="table-empty">
+                No proxies available yet. Add proxy sources to get started.
+            </td></tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = proxies.map(p => {
+        const scoreColor = getScoreColor(p.score);
+        const protocolClass = `protocol-${p.protocol.toLowerCase()}`;
+
+        return `
+            <tr>
+                <td><span class="proxy-addr">${escapeHtml(p.proxy)}</span></td>
+                <td><span class="protocol-badge ${protocolClass}">${escapeHtml(p.protocol)}</span></td>
+                <td>${getCountryDisplay(p.country)}</td>
+                <td>
+                    <div class="score-bar-cell">
+                        <div class="score-bar-bg">
+                            <div class="score-bar-value" style="width:${p.score}%; background:${scoreColor}"></div>
+                        </div>
+                        <span class="score-text" style="color:${scoreColor}">${p.score.toFixed(0)}</span>
+                    </div>
+                </td>
+                <td><span class="latency-text">${p.latency_ms > 0 ? p.latency_ms.toFixed(0) + 'ms' : '—'}</span></td>
+                <td>
+                    <span class="status-badge ${p.is_alive ? 'status-alive' : 'status-dead'}">
+                        <span class="status-badge-dot"></span>
+                        ${p.is_alive ? 'Alive' : 'Dead'}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ─── Helpers ───
+function getScoreColor(score) {
+    if (score >= 80) return COLORS.green;
+    if (score >= 60) return COLORS.cyan;
+    if (score >= 40) return COLORS.orange;
+    return COLORS.red;
+}
+
+function getCountryDisplay(country) {
+    if (!country || country === 'unknown') return '<span style="color:var(--text-dim)">—</span>';
+    const flag = getFlagEmoji(country);
+    return `<span class="country-flag">${flag}</span>${country.toUpperCase()}`;
+}
+
+function getFlagEmoji(countryCode) {
+    if (!countryCode || countryCode.length !== 2) return '🌐';
+    const code = countryCode.toUpperCase();
+    return String.fromCodePoint(
+        ...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)
+    );
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
