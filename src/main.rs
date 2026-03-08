@@ -32,9 +32,18 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting Proxy Pulse v0.1.0");
 
-    // Load configuration
-    let config_path = std::env::args()
-        .nth(1)
+    // Check for --demo flag
+    let args: Vec<String> = std::env::args().collect();
+    let demo_mode = args.iter().any(|a| a == "--demo");
+    if demo_mode {
+        info!("🔒 DEMO MODE enabled — all write/mutation API endpoints will return 403");
+    }
+
+    // Load configuration (skip --demo when looking for config path)
+    let config_path = args.iter()
+        .skip(1)
+        .find(|a| *a != "--demo")
+        .cloned()
         .unwrap_or_else(|| "config.yaml".to_string());
 
     let config = AppConfig::load(&config_path)?;
@@ -46,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Create shared state
     let config = Arc::new(config);
-    let state = Arc::new(AppState { db: db.clone(), config: config.clone() });
+    let state = Arc::new(AppState { db: db.clone(), config: config.clone(), demo_mode });
 
     // Start background schedulers
     scheduler::start_schedulers(db, config.clone()).await;

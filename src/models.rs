@@ -176,6 +176,7 @@ pub struct ProxyAdminResponse {
     pub source: String,
     pub last_check_at: Option<String>,
     pub last_success_at: Option<String>,
+    pub next_check_at: Option<String>,
     pub created_at: String,
 }
 
@@ -196,6 +197,7 @@ impl From<Proxy> for ProxyAdminResponse {
             source: p.source,
             last_check_at: p.last_check_at.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()),
             last_success_at: p.last_success_at.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()),
+            next_check_at: p.next_check_at.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()),
             created_at: p.created_at.format("%Y-%m-%d %H:%M:%S").to_string(),
         }
     }

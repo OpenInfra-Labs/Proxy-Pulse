@@ -82,6 +82,7 @@
         "th_success_fail": "成功 / 失败",
         "th_source": "来源",
         "th_last_check": "上次检查",
+        "th_next_check": "下次检查",
         "loading_proxies": "正在加载代理...",
         "add_source": "添加订阅源",
         "source_name": "源名称",
@@ -136,5 +137,10 @@
         "zh_tw": "繁體中文",
         "ja": "日本語",
         "switch": "语言"
+    },
+    "demo": {
+        "banner": "演示模式",
+        "banner_desc": "这是只读演示，写操作已禁用。",
+        "blocked": "无法在演示系统中操作"
     }
 }

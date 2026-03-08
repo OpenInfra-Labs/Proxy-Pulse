@@ -130,6 +130,13 @@ impl Database {
         .execute(&self.pool)
         .await;
 
+        // Ensure all existing sources use the 6h default interval
+        let _ = sqlx::query(
+            "UPDATE subscription_sources SET sync_interval_secs = 21600 WHERE sync_interval_secs IS NULL OR sync_interval_secs = 0",
+        )
+        .execute(&self.pool)
+        .await;
+
         Ok(())
     }
 

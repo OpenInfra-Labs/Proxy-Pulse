@@ -18,6 +18,22 @@ use crate::sources;
 pub struct AppState {
     pub db: Database,
     pub config: Arc<AppConfig>,
+    pub demo_mode: bool,
+}
+
+/// Helper: return 403 if demo mode is active
+fn demo_guard(state: &AppState) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+    if state.demo_mode {
+        Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                success: false,
+                error: "Operation not allowed in demo mode".to_string(),
+            }),
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -128,6 +144,7 @@ pub fn api_router() -> Router<Arc<AppState>> {
         .route("/api/v1/proxy/csv", get(get_proxies_csv))
         .route("/api/v1/proxy/stats", get(get_stats))
         .route("/api/v1/health", get(health_check))
+        .route("/api/v1/demo-mode", get(get_demo_mode))
         // Admin API — Proxy management
         .route("/api/v1/admin/proxy/list", get(admin_get_proxies))
         .route("/api/v1/admin/proxy/import", post(admin_import_proxies))
@@ -357,6 +374,16 @@ async fn health_check() -> Json<ApiResponse<String>> {
     })
 }
 
+/// GET /api/v1/demo-mode
+async fn get_demo_mode(
+    State(state): State<Arc<AppState>>,
+) -> Json<ApiResponse<bool>> {
+    Json(ApiResponse {
+        success: true,
+        data: state.demo_mode,
+    })
+}
+
 // ═══════════════════════════════════════════════
 //  Admin API Handlers
 // ═══════════════════════════════════════════════
@@ -402,6 +429,7 @@ async fn admin_import_proxies(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ImportProxiesRequest>,
 ) -> Result<Json<ApiResponse<ImportResult>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     let protocol_hint = body.protocol_hint.as_deref().unwrap_or("auto");
     let proxies = sources::parse_proxy_list(&body.content);
 
@@ -431,6 +459,7 @@ async fn admin_delete_proxy(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
 ) -> Result<Json<ApiResponse<bool>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     match state.db.delete_proxy(id).await {
         Ok(deleted) => Ok(Json(ApiResponse {
             success: true,
@@ -450,6 +479,7 @@ async fn admin_delete_proxy(
 async fn admin_delete_dead_proxies(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<DeleteResult>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     match state.db.delete_all_dead_proxies().await {
         Ok(count) => Ok(Json(ApiResponse {
             success: true,
@@ -494,6 +524,7 @@ async fn admin_add_source(
     State(state): State<Arc<AppState>>,
     Json(body): Json<AddSourceRequest>,
 ) -> Result<Json<ApiResponse<AddSourceResult>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     let protocol_hint = body.protocol_hint.as_deref().unwrap_or("auto");
     let sync_interval_secs = body.sync_interval_secs.unwrap_or(21600); // default 6 hours
 
@@ -552,6 +583,7 @@ async fn admin_delete_source(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
 ) -> Result<Json<ApiResponse<bool>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     match state.db.delete_subscription_source(id).await {
         Ok(deleted) => Ok(Json(ApiResponse {
             success: true,
@@ -573,6 +605,7 @@ async fn admin_toggle_source(
     Path(id): Path<i64>,
     Json(body): Json<ToggleSourceRequest>,
 ) -> Result<Json<ApiResponse<bool>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     match state.db.toggle_subscription_source(id, body.enabled).await {
         Ok(updated) => Ok(Json(ApiResponse {
             success: true,
@@ -592,6 +625,7 @@ async fn admin_toggle_source(
 async fn admin_sync_sources(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<SyncResult>>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
     match sources::sync_subscription_sources(&state.db).await {
         Ok(count) => {
             // Trigger immediate check for newly synced proxies

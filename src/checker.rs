@@ -175,16 +175,20 @@ fn calculate_next_check(proxy: &Proxy, success: bool) -> chrono::NaiveDateTime {
     let now = Utc::now().naive_utc();
 
     if success {
-        // Successful — check again at normal interval (5 min)
-        now + Duration::minutes(5)
+        // Successful — check again in 1 hour
+        now + Duration::hours(1)
     } else {
         let consecutive = proxy.consecutive_fails + 1; // +1 for this failure
         let minutes = match consecutive {
-            0..=1 => 1,
-            2..=3 => 5,
-            4..=5 => 15,
-            6..=10 => 30,
-            _ => 60,
+            1 => 3,         // 1st failure: 3 minutes
+            2 => 10,        // 2nd failure: 10 minutes
+            3 => 30,        // 3rd failure: 30 minutes
+            4 => 60,        // 4th failure: 1 hour
+            5 => 180,       // 5th failure: 3 hours
+            6 => 360,       // 6th failure: 6 hours
+            7 => 720,       // 7th failure: 12 hours
+            8 => 1440,      // 8th failure: 24 hours
+            _ => 2880,      // 9th+: 48 hours (max)
         };
         now + Duration::minutes(minutes)
     }

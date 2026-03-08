@@ -580,11 +580,12 @@
                                 <th data-i18n="admin.th_success_fail">Success / Fail</th>
                                 <th data-i18n="admin.th_source">Source</th>
                                 <th data-i18n="admin.th_last_check">Last Check</th>
+                                <th data-i18n="admin.th_next_check">Next Check</th>
                                 <th data-i18n="common.actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="proxyTableBody">
-                            <tr><td colspan="10"><div class="loading-overlay"><span class="spinner"></span> <span data-i18n="admin.loading_proxies">Loading proxies...</span></div></td></tr>
+                            <tr><td colspan="11"><div class="loading-overlay"><span class="spinner"></span> <span data-i18n="admin.loading_proxies">Loading proxies...</span></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -762,6 +763,32 @@
     const API = '/api/v1/admin';
     let proxyPage = 1;
     const proxyPerPage = 25;
+    let isDemoMode = false;
+
+    // ─── Demo Mode Detection ───
+    (async function detectDemoMode() {
+        try {
+            const resp = await fetch('/api/v1/demo-mode');
+            const json = await resp.json();
+            isDemoMode = json.success && json.data === true;
+            if (isDemoMode) {
+                const banner = document.createElement('div');
+                banner.id = 'demoBanner';
+                banner.style.cssText = 'background:linear-gradient(90deg,#7b61ff33,#00f0ff22);border:1px solid #7b61ff88;color:#e0e0e0;text-align:center;padding:10px 16px;font-size:0.85rem;border-radius:8px;margin:12px auto;max-width:900px;';
+                banner.innerHTML = '\ud83d\udd12 <strong data-i18n="demo.banner">DEMO MODE</strong> \u2014 <span data-i18n="demo.banner_desc">This is a read-only demo. Write operations are disabled.</span>';
+                document.querySelector('.main').prepend(banner);
+                I18N.updateDOM();
+            }
+        } catch(e) { /* ignore */ }
+    })();
+
+    function demoGuard() {
+        if (isDemoMode) {
+            showToast(I18N.t('demo.blocked'), 'error');
+            return true;
+        }
+        return false;
+    }
 
     // ─── Language Switcher ───
     const LANG_LABELS = { 'en': 'EN', 'zh-CN': '简', 'zh-TW': '繁', 'ja': 'JP' };
@@ -854,7 +881,7 @@
         if (alive !== '') params.set('alive', alive);
 
         const tbody = document.getElementById('proxyTableBody');
-        tbody.innerHTML = '<tr><td colspan="10"><div class="loading-overlay"><span class="spinner"></span> Loading...</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11"><div class="loading-overlay"><span class="spinner"></span> Loading...</div></td></tr>';
 
         try {
             const resp = await fetch(`${API}/proxy/list?${params}`);
@@ -863,7 +890,7 @@
 
             const { proxies, total, page, per_page } = json.data;
             if (proxies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><p>No proxies found</p></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><p>No proxies found</p></div></td></tr>';
                 document.getElementById('proxyPagination').innerHTML = '';
                 return;
             }
@@ -879,6 +906,7 @@
                     <td><span style="color:var(--accent-green)">${p.success_count}</span> / <span style="color:var(--accent-red)">${p.fail_count}</span></td>
                     <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(p.source)}">${escHtml(p.source)}</td>
                     <td style="font-size:0.78rem;color:var(--text-dim)">${p.last_check_at || '—'}</td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${p.next_check_at || '—'}</td>
                     <td>
                         <div class="row-actions">
                             <button class="btn btn-danger btn-icon btn-sm" onclick="deleteProxy(${p.id})" title="Delete">
@@ -905,7 +933,7 @@
             document.getElementById('proxyPagination').innerHTML = pagHtml;
 
         } catch (e) {
-            tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><p style="color:var(--accent-red)">Error: ${escHtml(e.message)}</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><p style="color:var(--accent-red)">Error: ${escHtml(e.message)}</p></div></td></tr>`;
         }
     }
 
@@ -916,6 +944,7 @@
     }
 
     async function deleteProxy(id) {
+        if (demoGuard()) return;
         if (!confirm(I18N.t('admin.confirm_delete_proxy'))) return;
         try {
             const resp = await fetch(`${API}/proxy/delete/${id}`, { method: 'POST' });
@@ -930,6 +959,7 @@
     }
 
     async function deleteDeadProxies() {
+        if (demoGuard()) return;
         if (!confirm(I18N.t('admin.confirm_purge'))) return;
         try {
             const resp = await fetch(`${API}/proxy/purge-dead`, { method: 'POST' });
@@ -1002,6 +1032,7 @@
 
     async function addSource(e) {
         e.preventDefault();
+        if (demoGuard()) return;
         const name = document.getElementById('sourceName').value.trim();
         const type = document.getElementById('sourceType').value;
         const url = document.getElementById('sourceUrl').value.trim();
@@ -1032,6 +1063,7 @@
     }
 
     async function deleteSource(id) {
+        if (demoGuard()) return;
         if (!confirm(I18N.t('admin.confirm_delete_source'))) return;
         try {
             const resp = await fetch(`${API}/source/delete/${id}`, { method: 'POST' });
@@ -1046,6 +1078,7 @@
     }
 
     async function toggleSource(id, enabled) {
+        if (demoGuard()) return;
         try {
             const resp = await fetch(`${API}/source/${id}/toggle`, {
                 method: 'POST',
@@ -1062,6 +1095,7 @@
     }
 
     async function syncAllSources() {
+        if (demoGuard()) return;
         showToast('Syncing all sources...', 'info');
         try {
             const resp = await fetch(`${API}/source/sync`, { method: 'POST' });
@@ -1082,6 +1116,7 @@
 
     async function importProxies(e) {
         e.preventDefault();
+        if (demoGuard()) return;
         const content = document.getElementById('importContent').value.trim();
         const protocol = document.getElementById('importProtocol').value;
         const resultDiv = document.getElementById('importResult');

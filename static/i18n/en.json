@@ -82,6 +82,7 @@
         "th_success_fail": "Success / Fail",
         "th_source": "Source",
         "th_last_check": "Last Check",
+        "th_next_check": "Next Check",
         "loading_proxies": "Loading proxies...",
         "add_source": "Add Subscription Source",
         "source_name": "Source Name",
@@ -136,5 +137,10 @@
         "zh_tw": "繁體中文", 
         "ja": "日本語",
         "switch": "Language"
+    },
+    "demo": {
+        "banner": "DEMO MODE",
+        "banner_desc": "This is a read-only demo. Write operations are disabled.",
+        "blocked": "Operation not allowed in demo mode"
     }
 }

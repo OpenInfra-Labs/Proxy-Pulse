@@ -82,6 +82,7 @@
         "th_success_fail": "成功 / 失敗",
         "th_source": "來源",
         "th_last_check": "上次檢查",
+        "th_next_check": "下次檢查",
         "loading_proxies": "正在載入代理...",
         "add_source": "新增訂閱來源",
         "source_name": "來源名稱",
@@ -136,5 +137,10 @@
         "zh_tw": "繁體中文",
         "ja": "日本語",
         "switch": "語言"
+    },
+    "demo": {
+        "banner": "演示模式",
+        "banner_desc": "這是唯讀演示，寫入操作已停用。",
+        "blocked": "無法在演示系統中操作"
     }
 }
