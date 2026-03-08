@@ -153,49 +153,6 @@
 
         <!-- Charts Row -->
         <section class="charts-row">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 data-i18n="dashboard.country_dist">Country Distribution</h3>
-                    <span class="chart-badge" data-i18n="dashboard.badge_geoip">GeoIP</span>
-                </div>
-                <div class="chart-body">
-                    <canvas id="countryChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 data-i18n="dashboard.latency_dist">Latency Distribution</h3>
-                    <span class="chart-badge" data-i18n="dashboard.badge_ms">ms</span>
-                </div>
-                <div class="chart-body">
-                    <canvas id="latencyChart"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 data-i18n="dashboard.protocol_mix">Protocol Mix</h3>
-                    <span class="chart-badge" data-i18n="dashboard.badge_type">Type</span>
-                </div>
-                <div class="chart-body">
-                    <canvas id="protocolChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- Score Distribution + Proxy Table -->
-        <section class="bottom-row">
-            <div class="chart-card score-dist-card">
-                <div class="chart-header">
-                    <h3 data-i18n="dashboard.score_dist">Score Distribution</h3>
-                    <span class="chart-badge" data-i18n="dashboard.badge_health">Health</span>
-                </div>
-                <div class="chart-body">
-                    <canvas id="scoreChart"></canvas>
-                </div>
-            </div>
-
             <div class="chart-card api-links-card">
                 <div class="chart-header">
                     <h3 data-i18n="dashboard.proxy_api">Proxy API</h3>
@@ -233,6 +190,39 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 data-i18n="dashboard.latency_dist">Latency Distribution</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_ms">ms</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 data-i18n="dashboard.protocol_mix">Protocol Mix</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_type">Type</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="protocolChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Score Distribution + Proxy Table -->
+        <section class="bottom-row">
+            <div class="chart-card score-dist-card">
+                <div class="chart-header">
+                    <h3 data-i18n="dashboard.score_dist">Score Distribution</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_health">Health</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="scoreChart"></canvas>
                 </div>
             </div>
 
@@ -278,6 +268,10 @@
         <span data-i18n="dashboard.footer_tagline">Open Source Proxy Pool Management</span>
         <span class="footer-divider">|</span>
         <span id="lastUpdate">Last update: —</span>
+        <span class="footer-divider">|</span>
+        <span>© 2026 <a href="https://github.com/OpenInfra-Labs" target="_blank" rel="noopener" style="color:var(--accent-cyan);text-decoration:none;">OpenInfra-Labs</a></span>
+        <span class="footer-divider">|</span>
+        <a href="https://github.com/OpenInfra-Labs/Proxy-Pulse" target="_blank" rel="noopener" style="color:var(--text-dim);text-decoration:none;transition:color 0.3s;" onmouseover="this.style.color='var(--accent-cyan)'" onmouseout="this.style.color='var(--text-dim)'">GitHub</a>
     </footer>
 
     <script>

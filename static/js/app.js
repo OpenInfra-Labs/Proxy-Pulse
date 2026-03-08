@@ -6,7 +6,6 @@ const API_BASE = '/api/v1';
 const REFRESH_INTERVAL = 30000; // 30 seconds
 
 // Chart instances
-let countryChart = null;
 let latencyChart = null;
 let protocolChart = null;
 let scoreChart = null;
@@ -162,24 +161,6 @@ function animateValue(elementId, target) {
 
 // ─── Charts ───
 function initCharts() {
-    // Country - Doughnut
-    const countryCtx = document.getElementById('countryChart').getContext('2d');
-    countryChart = new Chart(countryCtx, {
-        type: 'doughnut',
-        data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0, hoverOffset: 6 }] },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { font: { size: 10 }, padding: 8 },
-                },
-            },
-        },
-    });
-
     // Latency - Bar
     const latencyCtx = document.getElementById('latencyChart').getContext('2d');
     latencyChart = new Chart(latencyCtx, {
@@ -307,16 +288,6 @@ function createGradientBar(ctx, color1, color2) {
 }
 
 function updateCharts(stats) {
-    // Country chart
-    if (stats.country_distribution && stats.country_distribution.length > 0) {
-        const labels = stats.country_distribution.map(c => c.country.toUpperCase());
-        const data = stats.country_distribution.map(c => c.count);
-        countryChart.data.labels = labels;
-        countryChart.data.datasets[0].data = data;
-        countryChart.data.datasets[0].backgroundColor = CHART_PALETTE.slice(0, labels.length);
-        countryChart.update('none');
-    }
-
     // Latency chart
     if (stats.latency_distribution && stats.latency_distribution.length > 0) {
         latencyChart.data.labels = stats.latency_distribution.map(l => l.range);
