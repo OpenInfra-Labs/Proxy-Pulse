@@ -457,6 +457,11 @@ impl Database {
                 .fetch_one(&self.pool)
                 .await?;
 
+        let dead: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM proxies WHERE is_alive = 0 AND last_check_at IS NOT NULL")
+                .fetch_one(&self.pool)
+                .await?;
+
         let avg_score: (f64,) = sqlx::query_as(
             "SELECT COALESCE(AVG(score), 0.0) FROM proxies WHERE is_alive = 1",
         )
@@ -500,7 +505,7 @@ impl Database {
         Ok(ProxyStats {
             total_proxies: total.0,
             alive_proxies: alive.0,
-            dead_proxies: total.0 - alive.0,
+            dead_proxies: dead.0,
             avg_score: avg_score.0,
             avg_latency_ms: avg_latency.0,
             country_distribution: countries,
@@ -614,7 +619,7 @@ impl Database {
     }
 
     pub async fn delete_all_dead_proxies(&self) -> Result<u64> {
-        let result = sqlx::query("DELETE FROM proxies WHERE is_alive = 0")
+        let result = sqlx::query("DELETE FROM proxies WHERE is_alive = 0 AND last_check_at IS NOT NULL")
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected())
