@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proxy Pulse — Dashboard</title>
+    <title data-i18n="dashboard.title">Proxy Pulse — Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/i18n.js"></script>
 </head>
 <body>
     <!-- Animated background particles -->
@@ -35,18 +36,30 @@
                 </div>
                 <div class="logo-text">
                     <h1>Proxy Pulse</h1>
-                    <span class="logo-subtitle">Network Monitoring System</span>
+                    <span class="logo-subtitle" data-i18n="dashboard.subtitle">Network Monitoring System</span>
                 </div>
             </div>
         </div>
         <div class="header-right">
             <div style="display:flex;gap:8px;margin-right:16px;">
-                <a href="/" style="padding:6px 16px;border-radius:8px;color:#00f0ff;text-decoration:none;font-size:0.85rem;font-weight:500;border:1px solid #00f0ff;background:rgba(0,240,255,0.08);">Dashboard</a>
-                <a href="/admin" style="padding:6px 16px;border-radius:8px;color:#8892b0;text-decoration:none;font-size:0.85rem;font-weight:500;border:1px solid transparent;transition:0.3s;" onmouseover="this.style.color='#00f0ff';this.style.borderColor='rgba(0,240,255,0.2)'" onmouseout="this.style.color='#8892b0';this.style.borderColor='transparent'">Admin</a>
+                <a href="/" style="padding:6px 16px;border-radius:8px;color:#00f0ff;text-decoration:none;font-size:0.85rem;font-weight:500;border:1px solid #00f0ff;background:rgba(0,240,255,0.08);" data-i18n="common.dashboard">Dashboard</a>
+                <a href="/admin" style="padding:6px 16px;border-radius:8px;color:#8892b0;text-decoration:none;font-size:0.85rem;font-weight:500;border:1px solid transparent;transition:0.3s;" onmouseover="this.style.color='#00f0ff';this.style.borderColor='rgba(0,240,255,0.2)'" onmouseout="this.style.color='#8892b0';this.style.borderColor='transparent'" data-i18n="common.admin">Admin</a>
             </div>
             <div class="status-pill" id="systemStatus">
                 <span class="status-dot"></span>
-                <span class="status-text">System Online</span>
+                <span class="status-text" data-i18n="common.system_online">System Online</span>
+            </div>
+            <div class="lang-switcher">
+                <button class="lang-btn" onclick="toggleLangDropdown()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                    <span id="currentLangLabel">EN</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <button class="lang-option" data-lang="en">English</button>
+                    <button class="lang-option" data-lang="zh-CN">简体中文</button>
+                    <button class="lang-option" data-lang="zh-TW">繁體中文</button>
+                    <button class="lang-option" data-lang="ja">日本語</button>
+                </div>
             </div>
             <div class="header-time" id="headerTime"></div>
         </div>
@@ -66,7 +79,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="totalProxies">—</div>
-                        <div class="stat-label">Total Proxies</div>
+                        <div class="stat-label" data-i18n="dashboard.total_proxies">Total Proxies</div>
                     </div>
                     <div class="stat-trend" id="totalTrend"></div>
                 </div>
@@ -83,7 +96,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="aliveProxies">—</div>
-                        <div class="stat-label">Alive Proxies</div>
+                        <div class="stat-label" data-i18n="dashboard.alive_proxies">Alive Proxies</div>
                     </div>
                     <div class="stat-percentage" id="alivePercentage">—</div>
                 </div>
@@ -101,7 +114,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="deadProxies">—</div>
-                        <div class="stat-label">Dead Proxies</div>
+                        <div class="stat-label" data-i18n="dashboard.dead_proxies">Dead Proxies</div>
                     </div>
                 </div>
                 <div class="stat-bar"><div class="stat-bar-fill dead" id="deadBar"></div></div>
@@ -116,7 +129,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="avgScore">—</div>
-                        <div class="stat-label">Avg Score</div>
+                        <div class="stat-label" data-i18n="dashboard.avg_score">Avg Score</div>
                     </div>
                 </div>
                 <div class="stat-bar"><div class="stat-bar-fill score" id="scoreBar"></div></div>
@@ -131,7 +144,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="avgLatency">—</div>
-                        <div class="stat-label">Avg Latency</div>
+                        <div class="stat-label" data-i18n="dashboard.avg_latency">Avg Latency</div>
                     </div>
                 </div>
                 <div class="stat-bar"><div class="stat-bar-fill latency" id="latencyBar"></div></div>
@@ -142,8 +155,8 @@
         <section class="charts-row">
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>Country Distribution</h3>
-                    <span class="chart-badge">GeoIP</span>
+                    <h3 data-i18n="dashboard.country_dist">Country Distribution</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_geoip">GeoIP</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="countryChart"></canvas>
@@ -152,8 +165,8 @@
 
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>Latency Distribution</h3>
-                    <span class="chart-badge">ms</span>
+                    <h3 data-i18n="dashboard.latency_dist">Latency Distribution</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_ms">ms</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="latencyChart"></canvas>
@@ -162,8 +175,8 @@
 
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>Protocol Mix</h3>
-                    <span class="chart-badge">Type</span>
+                    <h3 data-i18n="dashboard.protocol_mix">Protocol Mix</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_type">Type</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="protocolChart"></canvas>
@@ -175,8 +188,8 @@
         <section class="bottom-row">
             <div class="chart-card score-dist-card">
                 <div class="chart-header">
-                    <h3>Score Distribution</h3>
-                    <span class="chart-badge">Health</span>
+                    <h3 data-i18n="dashboard.score_dist">Score Distribution</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_health">Health</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="scoreChart"></canvas>
@@ -185,11 +198,11 @@
 
             <div class="chart-card api-links-card">
                 <div class="chart-header">
-                    <h3>Proxy API</h3>
-                    <span class="chart-badge">Export</span>
+                    <h3 data-i18n="dashboard.proxy_api">Proxy API</h3>
+                    <span class="chart-badge" data-i18n="dashboard.badge_export">Export</span>
                 </div>
                 <div style="padding: 16px 20px;">
-                    <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:16px;">Get alive proxies via direct API links. Click to copy.</p>
+                    <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:16px;" data-i18n="dashboard.api_desc">Get alive proxies via direct API links. Click to copy.</p>
                     <div style="display:flex;flex-direction:column;gap:10px;">
                         <div class="api-link-row">
                             <span class="api-link-label">JSON</span>
@@ -225,7 +238,7 @@
 
             <div class="table-card">
                 <div class="table-header">
-                    <h3>Top Proxies</h3>
+                    <h3 data-i18n="dashboard.top_proxies">Top Proxies</h3>
                     <div class="table-controls">
                         <button class="btn-refresh" id="refreshBtn" title="Refresh">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -239,17 +252,17 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Proxy</th>
-                                <th>Protocol</th>
-                                <th>Country</th>
-                                <th>Score</th>
-                                <th>Latency</th>
-                                <th>Status</th>
+                                <th data-i18n="dashboard.th_proxy">Proxy</th>
+                                <th data-i18n="dashboard.th_protocol">Protocol</th>
+                                <th data-i18n="dashboard.th_country">Country</th>
+                                <th data-i18n="dashboard.th_score">Score</th>
+                                <th data-i18n="dashboard.th_latency">Latency</th>
+                                <th data-i18n="dashboard.th_status">Status</th>
                             </tr>
                         </thead>
                         <tbody id="proxyTableBody">
                             <tr>
-                                <td colspan="6" class="table-empty">Loading proxies...</td>
+                                <td colspan="6" class="table-empty" data-i18n="dashboard.loading_proxies">Loading proxies...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -260,14 +273,44 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <span>Proxy Pulse v0.1.0</span>
+        <span data-i18n="dashboard.footer_version">Proxy Pulse v0.1.0</span>
         <span class="footer-divider">|</span>
-        <span>Open Source Proxy Pool Management</span>
+        <span data-i18n="dashboard.footer_tagline">Open Source Proxy Pool Management</span>
         <span class="footer-divider">|</span>
         <span id="lastUpdate">Last update: —</span>
     </footer>
 
     <script>
+    // ─── Language Switcher ───
+    const LANG_LABELS = { 'en': 'EN', 'zh-CN': '简', 'zh-TW': '繁', 'ja': 'JP' };
+
+    function toggleLangDropdown() {
+        document.getElementById('langDropdown').classList.toggle('open');
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.lang-switcher')) {
+            document.getElementById('langDropdown').classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.lang-option').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            await I18N.setLocale(btn.dataset.lang);
+            document.getElementById('langDropdown').classList.remove('open');
+        });
+    });
+
+    function updateLangUI(locale) {
+        document.getElementById('currentLangLabel').textContent = LANG_LABELS[locale] || 'EN';
+        document.querySelectorAll('.lang-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === locale);
+        });
+    }
+
+    I18N.onChange(updateLangUI);
+
+    // ─── Copy API Link ───
     function copyApiLink(id) {
         const el = document.getElementById(id);
         const url = window.location.origin + el.textContent;
@@ -281,6 +324,9 @@
             }, 2000);
         });
     }
+
+    // Init i18n then start app
+    I18N.init().then(() => updateLangUI(I18N.locale));
     </script>
     <script src="/static/js/app.js"></script>
 </body>

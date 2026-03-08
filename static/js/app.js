@@ -98,7 +98,7 @@ async function fetchAllData() {
         }
 
         document.getElementById('lastUpdate').textContent =
-            `Last update: ${new Date().toLocaleTimeString('en-US', { hour12: false })}`;
+            `${I18N.t('dashboard.last_update')}: ${new Date().toLocaleTimeString('en-US', { hour12: false })}`;
     } catch (err) {
         console.error('Failed to fetch data:', err);
     }
@@ -346,7 +346,7 @@ function updateTable(proxies) {
     if (!proxies || proxies.length === 0) {
         tbody.innerHTML = `
             <tr><td colspan="6" class="table-empty">
-                No proxies available yet. Add proxy sources to get started.
+                ${I18N.t('dashboard.no_proxies')}
             </td></tr>
         `;
         return;
@@ -373,7 +373,7 @@ function updateTable(proxies) {
                 <td>
                     <span class="status-badge ${p.is_alive ? 'status-alive' : 'status-dead'}">
                         <span class="status-badge-dot"></span>
-                        ${p.is_alive ? 'Alive' : 'Dead'}
+                        ${p.is_alive ? I18N.t('dashboard.status_alive') : I18N.t('dashboard.status_dead')}
                     </span>
                 </td>
             </tr>

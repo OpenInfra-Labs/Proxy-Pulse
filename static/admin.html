@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proxy Pulse — Admin Panel</title>
+    <title data-i18n="admin.title">Proxy Pulse — Admin Panel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/i18n.js"></script>
     <style>
         /* ─── Admin-specific styles ─── */
         .nav-links {
@@ -477,18 +478,30 @@
                 </div>
                 <div class="logo-text">
                     <h1>Proxy Pulse</h1>
-                    <span class="logo-subtitle">Admin Control Panel</span>
+                    <span class="logo-subtitle" data-i18n="admin.subtitle">Admin Control Panel</span>
                 </div>
             </div>
         </div>
         <div class="header-right">
             <div class="nav-links">
-                <a href="/" class="nav-link">Dashboard</a>
-                <a href="/admin" class="nav-link active">Admin</a>
+                <a href="/" class="nav-link" data-i18n="common.dashboard">Dashboard</a>
+                <a href="/admin" class="nav-link active" data-i18n="common.admin">Admin</a>
             </div>
             <div class="status-pill" id="systemStatus">
                 <span class="status-dot"></span>
-                <span class="status-text">System Online</span>
+                <span class="status-text" data-i18n="common.system_online">System Online</span>
+            </div>
+            <div class="lang-switcher">
+                <button class="lang-btn" onclick="toggleLangDropdown()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                    <span id="currentLangLabel">EN</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <button class="lang-option" data-lang="en">English</button>
+                    <button class="lang-option" data-lang="zh-CN">简体中文</button>
+                    <button class="lang-option" data-lang="zh-TW">繁體中文</button>
+                    <button class="lang-option" data-lang="ja">日本語</button>
+                </div>
             </div>
         </div>
     </header>
@@ -501,19 +514,19 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
                     <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
                 </svg>
-                Proxy Management
+                <span data-i18n="admin.tab_proxies">Proxy Management</span>
             </button>
             <button class="admin-tab" data-tab="sources">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                 </svg>
-                Subscription Sources
+                <span data-i18n="admin.tab_sources">Subscription Sources</span>
             </button>
             <button class="admin-tab" data-tab="import">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                Bulk Import
+                <span data-i18n="admin.tab_import">Bulk Import</span>
             </button>
         </div>
 
@@ -529,28 +542,28 @@
                     </div>
                     <div class="filter-bar">
                         <select class="form-select" id="filterProtocol">
-                            <option value="all">All Protocols</option>
+                            <option value="all" data-i18n="admin.filter_all_protocols">All Protocols</option>
                             <option value="http">HTTP</option>
                             <option value="https">HTTPS</option>
                             <option value="socks4">SOCKS4</option>
                             <option value="socks5">SOCKS5</option>
                         </select>
                         <select class="form-select" id="filterAlive">
-                            <option value="">All Status</option>
-                            <option value="true">Alive</option>
-                            <option value="false">Dead</option>
+                            <option value="" data-i18n="admin.filter_all_status">All Status</option>
+                            <option value="true" data-i18n="admin.filter_alive">Alive</option>
+                            <option value="false" data-i18n="admin.filter_dead">Dead</option>
                         </select>
                         <button class="btn btn-danger btn-sm" onclick="deleteDeadProxies()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
-                            Purge Dead
+                            <span data-i18n="admin.purge_dead">Purge Dead</span>
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="loadProxies()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                                 <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
                             </svg>
-                            Refresh
+                            <span data-i18n="common.refresh">Refresh</span>
                         </button>
                     </div>
                 </div>
@@ -558,20 +571,20 @@
                     <table class="data-table" id="proxyTable">
                         <thead>
                             <tr>
-                                <th>Proxy</th>
-                                <th>Protocol</th>
-                                <th>Country</th>
-                                <th>Status</th>
-                                <th>Score</th>
-                                <th>Latency</th>
-                                <th>Success / Fail</th>
-                                <th>Source</th>
-                                <th>Last Check</th>
-                                <th>Actions</th>
+                                <th data-i18n="admin.th_proxy">Proxy</th>
+                                <th data-i18n="admin.th_protocol">Protocol</th>
+                                <th data-i18n="admin.th_country">Country</th>
+                                <th data-i18n="admin.th_status">Status</th>
+                                <th data-i18n="admin.th_score">Score</th>
+                                <th data-i18n="admin.th_latency">Latency</th>
+                                <th data-i18n="admin.th_success_fail">Success / Fail</th>
+                                <th data-i18n="admin.th_source">Source</th>
+                                <th data-i18n="admin.th_last_check">Last Check</th>
+                                <th data-i18n="common.actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="proxyTableBody">
-                            <tr><td colspan="10"><div class="loading-overlay"><span class="spinner"></span> Loading proxies...</div></td></tr>
+                            <tr><td colspan="10"><div class="loading-overlay"><span class="spinner"></span> <span data-i18n="admin.loading_proxies">Loading proxies...</span></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -594,45 +607,45 @@
                 <form id="addSourceForm" onsubmit="addSource(event)">
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Source Name</label>
-                            <input type="text" class="form-input" id="sourceName" placeholder="e.g. Free Proxy List #1" required>
+                            <label class="form-label" data-i18n="admin.source_name">Source Name</label>
+                            <input type="text" class="form-input" id="sourceName" data-i18n-placeholder="admin.source_name_placeholder" placeholder="e.g. Free Proxy List #1" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Source Type</label>
+                            <label class="form-label" data-i18n="admin.source_type">Source Type</label>
                             <select class="form-select" id="sourceType" onchange="toggleSourceFields()">
-                                <option value="url">URL Subscription</option>
-                                <option value="text">Text / Paste List</option>
+                                <option value="url" data-i18n="admin.type_url">URL Subscription</option>
+                                <option value="text" data-i18n="admin.type_text">Text / Paste List</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-group" id="sourceUrlGroup">
-                        <label class="form-label">Subscription URL</label>
-                        <input type="url" class="form-input" id="sourceUrl" placeholder="https://example.com/proxy-list.txt">
-                        <p class="form-hint">TXT subscription link that returns one proxy per line (ip:port or protocol://ip:port)</p>
+                        <label class="form-label" data-i18n="admin.subscription_url">Subscription URL</label>
+                        <input type="url" class="form-input" id="sourceUrl" data-i18n-placeholder="admin.subscription_url_placeholder" placeholder="https://example.com/proxy-list.txt">
+                        <p class="form-hint" data-i18n="admin.url_hint">TXT subscription link that returns one proxy per line (ip:port or protocol://ip:port)</p>
                     </div>
                     <div class="form-group" id="sourceContentGroup" style="display:none;">
-                        <label class="form-label">Proxy List Content</label>
+                        <label class="form-label" data-i18n="admin.proxy_list_content">Proxy List Content</label>
                         <textarea class="form-textarea" id="sourceContent" placeholder="192.168.1.1:8080&#10;socks5://10.0.0.1:1080&#10;10.0.0.2:1080:socks4"></textarea>
-                        <p class="form-hint">One proxy per line. Supports: ip:port, protocol://ip:port, ip:port:protocol</p>
+                        <p class="form-hint" data-i18n="admin.content_hint">One proxy per line. Supports: ip:port, protocol://ip:port, ip:port:protocol</p>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Protocol Override</label>
+                            <label class="form-label" data-i18n="admin.protocol_override">Protocol Override</label>
                             <select class="form-select" id="sourceProtocol">
-                                <option value="auto">Auto Detect</option>
+                                <option value="auto" data-i18n="admin.auto_detect">Auto Detect</option>
                                 <option value="http">HTTP</option>
                                 <option value="https">HTTPS</option>
                                 <option value="socks4">SOCKS4</option>
                                 <option value="socks5">SOCKS5</option>
                             </select>
-                            <p class="form-hint">Override the protocol for all proxies in this source, or use auto to keep the parsed protocol</p>
+                            <p class="form-hint" data-i18n="admin.protocol_hint">Override the protocol for all proxies in this source, or use auto to keep the parsed protocol</p>
                         </div>
                         <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:26px;">
                             <button type="submit" class="btn btn-primary">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
-                                Add Source
+                                <span data-i18n="admin.btn_add_source">Add Source</span>
                             </button>
                         </div>
                     </div>
@@ -652,26 +665,26 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                             <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
                         </svg>
-                        Sync All Now
+                        <span data-i18n="admin.sync_all">Sync All Now</span>
                     </button>
                 </div>
                 <div class="table-wrapper">
                     <table class="data-table" id="sourceTable">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>URL / Content</th>
-                                <th>Protocol</th>
-                                <th>Proxies</th>
-                                <th>Enabled</th>
-                                <th>Last Sync</th>
-                                <th>Error</th>
-                                <th>Actions</th>
+                                <th data-i18n="admin.th_name">Name</th>
+                                <th data-i18n="admin.th_type">Type</th>
+                                <th data-i18n="admin.th_url_content">URL / Content</th>
+                                <th data-i18n="admin.th_protocol">Protocol</th>
+                                <th data-i18n="admin.th_proxies">Proxies</th>
+                                <th data-i18n="admin.th_enabled">Enabled</th>
+                                <th data-i18n="admin.th_last_sync">Last Sync</th>
+                                <th data-i18n="admin.th_error">Error</th>
+                                <th data-i18n="common.actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="sourceTableBody">
-                            <tr><td colspan="9"><div class="loading-overlay"><span class="spinner"></span> Loading sources...</div></td></tr>
+                            <tr><td colspan="9"><div class="loading-overlay"><span class="spinner"></span> <span data-i18n="admin.loading_sources">Loading sources...</span></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -689,20 +702,20 @@
                         Quick Bulk Import
                     </div>
                 </div>
-                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:20px;">
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:20px;" data-i18n="admin.import_desc">
                     Paste a list of proxies below to import them immediately into the pool. They will be queued for health checking automatically.
                 </p>
                 <form id="importForm" onsubmit="importProxies(event)">
                     <div class="form-group">
-                        <label class="form-label">Proxy List</label>
+                        <label class="form-label" data-i18n="admin.proxy_list">Proxy List</label>
                         <textarea class="form-textarea" id="importContent" rows="10" required
                             placeholder="# Paste proxies here, one per line&#10;# Supported formats:&#10;# 192.168.1.1:8080&#10;# socks5://10.0.0.1:1080&#10;# 10.0.0.2:1080:socks4&#10;#&#10;# Lines starting with # or // are ignored"></textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Protocol Override</label>
+                            <label class="form-label" data-i18n="admin.protocol_override">Protocol Override</label>
                             <select class="form-select" id="importProtocol">
-                                <option value="auto">Auto Detect</option>
+                                <option value="auto" data-i18n="admin.auto_detect">Auto Detect</option>
                                 <option value="http">HTTP</option>
                                 <option value="https">HTTPS</option>
                                 <option value="socks4">SOCKS4</option>
@@ -714,9 +727,9 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                                 </svg>
-                                Import Proxies
+                                <span data-i18n="admin.btn_import">Import Proxies</span>
                             </button>
-                            <button type="button" class="btn btn-outline" onclick="document.getElementById('importContent').value=''">Clear</button>
+                            <button type="button" class="btn btn-outline" onclick="document.getElementById('importContent').value=''" data-i18n="common.clear">Clear</button>
                         </div>
                     </div>
                 </form>
@@ -733,6 +746,36 @@
     const API = '/api/v1/admin';
     let proxyPage = 1;
     const proxyPerPage = 25;
+
+    // ─── Language Switcher ───
+    const LANG_LABELS = { 'en': 'EN', 'zh-CN': '简', 'zh-TW': '繁', 'ja': 'JP' };
+
+    function toggleLangDropdown() {
+        document.getElementById('langDropdown').classList.toggle('open');
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.lang-switcher')) {
+            document.getElementById('langDropdown').classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.lang-option').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            await I18N.setLocale(btn.dataset.lang);
+            document.getElementById('langDropdown').classList.remove('open');
+        });
+    });
+
+    function updateLangUI(locale) {
+        document.getElementById('currentLangLabel').textContent = LANG_LABELS[locale] || 'EN';
+        document.querySelectorAll('.lang-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === locale);
+        });
+    }
+
+    I18N.onChange(updateLangUI);
+    I18N.init().then(() => updateLangUI(I18N.locale));
 
     // ─── Tab Switching (with URL hash persistence) ───
     function switchTab(tabName) {
@@ -857,12 +900,12 @@
     }
 
     async function deleteProxy(id) {
-        if (!confirm('Delete this proxy?')) return;
+        if (!confirm(I18N.t('admin.confirm_delete_proxy'))) return;
         try {
             const resp = await fetch(`${API}/proxy/delete/${id}`, { method: 'POST' });
             const json = await resp.json();
             if (json.success) {
-                showToast('Proxy deleted', 'success');
+                showToast(I18N.t('admin.toast_delete_success'), 'success');
                 loadProxies();
             } else {
                 showToast('Failed: ' + json.error, 'error');
@@ -871,12 +914,12 @@
     }
 
     async function deleteDeadProxies() {
-        if (!confirm('Delete ALL dead proxies? This cannot be undone.')) return;
+        if (!confirm(I18N.t('admin.confirm_purge'))) return;
         try {
             const resp = await fetch(`${API}/proxy/purge-dead`, { method: 'POST' });
             const json = await resp.json();
             if (json.success) {
-                showToast(`Purged ${json.data.deleted} dead proxies`, 'success');
+                showToast(I18N.t('admin.toast_purged'), 'success');
                 loadProxies();
             } else {
                 showToast('Failed: ' + json.error, 'error');
@@ -960,7 +1003,7 @@
             });
             const json = await resp.json();
             if (json.success) {
-                showToast(`Source added — synced ${json.data.synced} proxies, checking now...`, 'success');
+                showToast(`${I18N.t('admin.toast_source_added')} — ${json.data.synced} proxies`, 'success');
                 document.getElementById('addSourceForm').reset();
                 toggleSourceFields();
                 loadSources();
@@ -971,12 +1014,12 @@
     }
 
     async function deleteSource(id) {
-        if (!confirm('Delete this subscription source?')) return;
+        if (!confirm(I18N.t('admin.confirm_delete_source'))) return;
         try {
             const resp = await fetch(`${API}/source/delete/${id}`, { method: 'POST' });
             const json = await resp.json();
             if (json.success) {
-                showToast('Source deleted', 'success');
+                showToast(I18N.t('admin.toast_source_deleted'), 'success');
                 loadSources();
             } else {
                 showToast('Failed: ' + json.error, 'error');
@@ -1006,7 +1049,7 @@
             const resp = await fetch(`${API}/source/sync`, { method: 'POST' });
             const json = await resp.json();
             if (json.success) {
-                showToast(`Sync complete — ${json.data.synced} proxies imported`, 'success');
+                showToast(`${I18N.t('admin.toast_synced')} — ${json.data.synced} proxies`, 'success');
                 loadSources();
                 loadProxies();
             } else {
@@ -1042,7 +1085,7 @@
             });
             const json = await resp.json();
             if (json.success) {
-                showToast(`Successfully imported ${json.data.imported} proxies!`, 'success');
+                showToast(`${json.data.imported} ${I18N.t('admin.toast_imported')}`, 'success');
                 resultDiv.style.display = 'block';
                 resultDiv.innerHTML = `
                     <div style="padding:16px;background:rgba(0,230,138,0.08);border:1px solid rgba(0,230,138,0.2);border-radius:10px;color:var(--accent-green);display:flex;align-items:center;gap:10px;">
@@ -1061,7 +1104,7 @@
             showToast('Error: ' + e.message, 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Import Proxies`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> <span data-i18n="admin.btn_import">${I18N.t('admin.btn_import')}</span>`;
         }
     }
 
