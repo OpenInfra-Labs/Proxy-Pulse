@@ -44,8 +44,8 @@ pub struct CheckerConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ScoringConfig {
-    #[allow(dead_code)]
     pub min_score: f64,
     pub weight_success_rate: f64,
     pub weight_latency: f64,

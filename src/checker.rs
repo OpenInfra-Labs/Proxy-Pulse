@@ -175,8 +175,8 @@ fn calculate_next_check(proxy: &Proxy, success: bool) -> chrono::NaiveDateTime {
     let now = Utc::now().naive_utc();
 
     if success {
-        // Successful — check again in 1 hour
-        now + Duration::hours(1)
+        // Successful — check again in 1 minute
+        now + Duration::minutes(1)
     } else {
         let consecutive = proxy.consecutive_fails + 1; // +1 for this failure
         let minutes = match consecutive {
@@ -195,47 +195,49 @@ fn calculate_next_check(proxy: &Proxy, success: bool) -> chrono::NaiveDateTime {
 }
 
 /// Calculate health score (0-100)
+///   Success rate:  50 pts (0-100% maps to 0-50)
+///   Success count: 10 pts (capped at 10 successes)
+///   Country:       10 pts (known=10, unknown=0)
+///   Latency:       30 pts (<=50ms=30, >=10000ms=0, linear scale)
 fn calculate_score(
     proxy: &Proxy,
     current_success: bool,
     avg_latency: Option<f64>,
-    cfg: &ScoringConfig,
+    _cfg: &ScoringConfig,
 ) -> f64 {
     let total_checks = proxy.success_count + proxy.fail_count + 1;
     let successes = proxy.success_count + if current_success { 1 } else { 0 };
 
-    // Success rate component (0-100)
-    let success_rate = (successes as f64 / total_checks as f64) * 100.0;
+    // Success rate component (0-50)
+    let rate = successes as f64 / total_checks as f64;
+    let success_rate_score = rate * 50.0;
 
-    // Latency component (0-100) — lower latency = higher score
+    // Success count component (0-10), capped at 10 successes
+    let success_count_score = (successes as f64).min(10.0);
+
+    // Country component (0-10): known country = 10, unknown = 0
+    let country_score = if proxy.country == "unknown" || proxy.country.is_empty() {
+        0.0
+    } else {
+        10.0
+    };
+
+    // Latency component (0-30): <=50ms = 30, >=10000ms = 0, linear between
     let latency_score = match avg_latency.or(Some(proxy.avg_latency_ms)) {
         Some(ms) if ms > 0.0 => {
-            if ms <= 100.0 {
-                100.0
-            } else if ms <= 500.0 {
-                100.0 - ((ms - 100.0) / 400.0) * 60.0
-            } else if ms <= 2000.0 {
-                40.0 - ((ms - 500.0) / 1500.0) * 30.0
+            if ms <= 50.0 {
+                30.0
+            } else if ms >= 10000.0 {
+                0.0
             } else {
-                10.0
+                // Linear: 30 * (10000 - ms) / (10000 - 50)
+                30.0 * (10000.0 - ms) / 9950.0
             }
         }
-        _ => 50.0, // Unknown latency
+        _ => 0.0, // Unknown latency = 0
     };
 
-    // Stability component (0-100) — based on consecutive success
-    let stability_score = if proxy.consecutive_fails == 0 && current_success {
-        let uptime_bonus = (proxy.success_count as f64).min(100.0);
-        50.0 + (uptime_bonus / 100.0) * 50.0
-    } else {
-        let penalty = (proxy.consecutive_fails as f64 * 15.0).min(100.0);
-        (50.0 - penalty).max(0.0)
-    };
-
-    let score = success_rate * cfg.weight_success_rate
-        + latency_score * cfg.weight_latency
-        + stability_score * cfg.weight_stability;
-
+    let score = success_rate_score + success_count_score + country_score + latency_score;
     score.clamp(0.0, 100.0)
 }
 
