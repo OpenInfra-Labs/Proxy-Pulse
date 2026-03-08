@@ -183,6 +183,46 @@
                 </div>
             </div>
 
+            <div class="chart-card api-links-card">
+                <div class="chart-header">
+                    <h3>Proxy API</h3>
+                    <span class="chart-badge">Export</span>
+                </div>
+                <div style="padding: 16px 20px;">
+                    <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:16px;">Get alive proxies via direct API links. Click to copy.</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div class="api-link-row">
+                            <span class="api-link-label">JSON</span>
+                            <code class="api-link-url" id="apiJsonUrl">/api/v1/proxy/all?per_page=100</code>
+                            <button class="api-link-copy" onclick="copyApiLink('apiJsonUrl')" title="Copy">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="api-link-row">
+                            <span class="api-link-label">Top 10</span>
+                            <code class="api-link-url" id="apiTopUrl">/api/v1/proxy/top?limit=10</code>
+                            <button class="api-link-copy" onclick="copyApiLink('apiTopUrl')" title="Copy">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="api-link-row">
+                            <span class="api-link-label">Random</span>
+                            <code class="api-link-url" id="apiRandomUrl">/api/v1/proxy/random</code>
+                            <button class="api-link-copy" onclick="copyApiLink('apiRandomUrl')" title="Copy">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="api-link-row">
+                            <span class="api-link-label">TXT</span>
+                            <code class="api-link-url" id="apiTxtUrl">/api/v1/proxy/txt</code>
+                            <button class="api-link-copy" onclick="copyApiLink('apiTxtUrl')" title="Copy">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="table-card">
                 <div class="table-header">
                     <h3>Top Proxies</h3>
@@ -227,6 +267,21 @@
         <span id="lastUpdate">Last update: —</span>
     </footer>
 
+    <script>
+    function copyApiLink(id) {
+        const el = document.getElementById(id);
+        const url = window.location.origin + el.textContent;
+        navigator.clipboard.writeText(url).then(() => {
+            const btn = el.nextElementSibling;
+            btn.classList.add('copied');
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="20 6 9 17 4 12"/></svg>';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+            }, 2000);
+        });
+    }
+    </script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

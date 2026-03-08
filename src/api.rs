@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::Json,
+    response::{Json, IntoResponse},
     routing::{get, post},
     Router,
 };
@@ -116,6 +116,7 @@ pub fn api_router() -> Router<Arc<AppState>> {
         .route("/api/v1/proxy/top", get(get_top_proxies))
         .route("/api/v1/proxy/country/:country", get(get_proxies_by_country))
         .route("/api/v1/proxy/all", get(get_all_proxies))
+        .route("/api/v1/proxy/txt", get(get_proxies_txt))
         .route("/api/v1/proxy/stats", get(get_stats))
         .route("/api/v1/health", get(health_check))
         // Admin API — Proxy management
@@ -227,6 +228,33 @@ async fn get_all_proxies(
                 error: e.to_string(),
             }),
         )),
+    }
+}
+
+/// GET /api/v1/proxy/txt — Plain text list of alive proxies (one per line)
+async fn get_proxies_txt(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<TopParams>,
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(200).min(1000);
+    match state.db.get_top_proxies(limit).await {
+        Ok(proxies) => {
+            let txt: String = proxies
+                .iter()
+                .map(|p| format!("{}://{}:{}", p.protocol, p.ip, p.port))
+                .collect::<Vec<_>>()
+                .join("\n");
+            (
+                StatusCode::OK,
+                [("content-type", "text/plain; charset=utf-8")],
+                txt,
+            )
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            [("content-type", "text/plain; charset=utf-8")],
+            format!("Error: {}", e),
+        ),
     }
 }
 
