@@ -734,15 +734,29 @@
     let proxyPage = 1;
     const proxyPerPage = 25;
 
-    // ─── Tab Switching ───
+    // ─── Tab Switching (with URL hash persistence) ───
+    function switchTab(tabName) {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        const btn = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+        if (btn) {
+            btn.classList.add('active');
+            document.getElementById('panel-' + tabName).classList.add('active');
+            location.hash = tabName;
+        }
+    }
+
     document.querySelectorAll('.admin-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-        });
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
+
+    // Restore tab from URL hash on load
+    (function restoreTab() {
+        const hash = location.hash.replace('#', '');
+        if (hash && document.querySelector(`.admin-tab[data-tab="${hash}"]`)) {
+            switchTab(hash);
+        }
+    })();
 
     // ─── Toast Notifications ───
     function showToast(message, type = 'info') {
