@@ -1,11 +1,28 @@
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use tokio::process::Command;
+use tokio::sync::RwLock;
 use tracing::{error, info, warn};
 
 use crate::db::Database;
 
 const REPO: &str = "OpenInfra-Labs/Proxy-Pulse";
 const CHECK_INTERVAL_SECS: u64 = 3600; // Check every hour
+const CACHE_TTL_SECS: u64 = 14400; // Cache for 4 hours
+
+#[derive(Clone)]
+struct ReleaseEntry {
+    version: String,
+    date: String,
+}
+
+struct ReleaseCache {
+    entries: Vec<ReleaseEntry>,
+    fetched_at: std::time::Instant,
+}
+
+static RELEASE_CACHE: LazyLock<RwLock<Option<ReleaseCache>>> =
+    LazyLock::new(|| RwLock::new(None));
 
 /// Spawn the auto-update background task
 pub fn spawn_auto_updater(db: Database) {
@@ -79,93 +96,101 @@ pub async fn check_and_update() -> anyhow::Result<bool> {
     Ok(true)
 }
 
-/// Fetch the latest release tag from GitHub API
-/// Falls back to tags API if no releases exist
-pub async fn fetch_latest_version() -> anyhow::Result<String> {
-    let client = reqwest::Client::builder()
-        .user_agent("Proxy-Pulse-Updater")
-        .timeout(std::time::Duration::from_secs(15))
-        .build()?;
-
-    // Try releases/latest first
-    let url = format!(
-        "https://api.github.com/repos/{}/releases/latest",
-        REPO
-    );
-    let resp = client.get(&url).send().await?;
-    if resp.status().is_success() {
-        let json: serde_json::Value = resp.json().await?;
-        if let Some(tag) = json.get("tag_name").and_then(|v| v.as_str()) {
-            return Ok(tag.to_string());
+/// Fetch and cache releases from GitHub Atom feed (not subject to API rate limits)
+async fn fetch_atom_releases() -> anyhow::Result<Vec<ReleaseEntry>> {
+    // Check cache first
+    {
+        let cache = RELEASE_CACHE.read().await;
+        if let Some(ref c) = *cache {
+            if c.fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
+                return Ok(c.entries.clone());
+            }
         }
     }
 
-    // Fallback: fetch latest tag
-    let url = format!(
-        "https://api.github.com/repos/{}/tags?per_page=1",
-        REPO
-    );
-    let resp = client.get(&url).send().await?;
-    let json: serde_json::Value = resp.json().await?;
-    json.as_array()
-        .and_then(|arr| arr.first())
-        .and_then(|t| t.get("name"))
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| anyhow::anyhow!("No releases or tags found"))
-}
-
-/// Fetch all releases from GitHub API (tag, date, body)
-/// Falls back to tags API if no releases exist
-pub async fn fetch_releases() -> anyhow::Result<Vec<serde_json::Value>> {
+    let url = format!("https://github.com/{}/releases.atom", REPO);
     let client = reqwest::Client::builder()
         .user_agent("Proxy-Pulse-Updater")
         .timeout(std::time::Duration::from_secs(15))
         .build()?;
 
-    // Try releases first
-    let url = format!(
-        "https://api.github.com/repos/{}/releases?per_page=50",
-        REPO
-    );
-    let resp = client.get(&url).send().await?;
-    let releases: Vec<serde_json::Value> = resp.json().await?;
+    let text = client.get(&url).send().await?.text().await?;
+    let entries = parse_atom_entries(&text);
 
-    let results: Vec<serde_json::Value> = releases
-        .into_iter()
-        .filter_map(|r| {
-            let tag = r.get("tag_name")?.as_str()?.to_string();
-            let date = r.get("published_at")?.as_str()?.to_string();
-            let body = r.get("body").and_then(|b| b.as_str()).unwrap_or("").to_string();
-            Some(serde_json::json!({
-                "version": tag,
-                "date": date,
-                "notes": body,
-            }))
-        })
-        .collect();
-
-    if !results.is_empty() {
-        return Ok(results);
+    if entries.is_empty() {
+        return Err(anyhow::anyhow!("No releases found in Atom feed"));
     }
 
-    // Fallback: fetch tags
-    let url = format!(
-        "https://api.github.com/repos/{}/tags?per_page=50",
-        REPO
-    );
-    let resp = client.get(&url).send().await?;
-    let tags: Vec<serde_json::Value> = resp.json().await?;
+    // Update cache
+    {
+        let mut cache = RELEASE_CACHE.write().await;
+        *cache = Some(ReleaseCache {
+            entries: entries.clone(),
+            fetched_at: std::time::Instant::now(),
+        });
+    }
 
-    Ok(tags
+    Ok(entries)
+}
+
+fn parse_atom_entries(xml: &str) -> Vec<ReleaseEntry> {
+    let mut entries = Vec::new();
+    let mut rest = xml;
+
+    while let Some(start) = rest.find("<entry>") {
+        let after_start = &rest[start..];
+        if let Some(end) = after_start.find("</entry>") {
+            let entry_xml = &after_start[..end + 8];
+
+            let version = extract_xml_tag(entry_xml, "title").unwrap_or_default();
+            let date = extract_xml_tag(entry_xml, "updated").unwrap_or_default();
+
+            if !version.is_empty() {
+                entries.push(ReleaseEntry { version, date });
+            }
+
+            rest = &after_start[end + 8..];
+        } else {
+            break;
+        }
+    }
+
+    entries
+}
+
+fn extract_xml_tag(xml: &str, tag: &str) -> Option<String> {
+    let open = format!("<{}", tag);
+    let close = format!("</{}>", tag);
+
+    let start_pos = xml.find(&open)?;
+    let after_open = &xml[start_pos..];
+    let content_start = after_open.find('>')? + 1;
+    let content = &after_open[content_start..];
+    let end_pos = content.find(&close)?;
+
+    Some(content[..end_pos].trim().to_string())
+}
+
+/// Fetch the latest release version from GitHub Atom feed
+pub async fn fetch_latest_version() -> anyhow::Result<String> {
+    let entries = fetch_atom_releases().await?;
+    entries
+        .first()
+        .map(|e| e.version.clone())
+        .ok_or_else(|| anyhow::anyhow!("No releases found"))
+}
+
+/// Fetch all releases from GitHub Atom feed
+pub async fn fetch_releases() -> anyhow::Result<Vec<serde_json::Value>> {
+    let entries = fetch_atom_releases().await?;
+    Ok(entries
         .into_iter()
-        .filter_map(|t| {
-            let name = t.get("name")?.as_str()?.to_string();
-            Some(serde_json::json!({
-                "version": name,
-                "date": "",
+        .map(|e| {
+            serde_json::json!({
+                "version": e.version,
+                "date": e.date,
                 "notes": "",
-            }))
+            })
         })
         .collect())
 }
