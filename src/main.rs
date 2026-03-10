@@ -134,8 +134,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Admin/internal API routes — admin role only
     let admin_api = api::admin_api_router()
-        .layer(DefaultBodyLimit::disable())
-        .layer(middleware::from_fn_with_state(state.clone(), auth::admin_auth_middleware));
+        .layer(middleware::from_fn_with_state(state.clone(), auth::admin_auth_middleware))
+        .layer(DefaultBodyLimit::disable());
 
     // Auth-management routes (change password, API keys, preferences, me) — session token only
     let auth_mgmt = Router::new()

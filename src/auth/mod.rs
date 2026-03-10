@@ -38,10 +38,21 @@ fn generate_token() -> String {
 }
 
 fn extract_token(req: &Request) -> Option<String> {
+    // Try Bearer token from Authorization header first
     if let Some(auth) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth.to_str() {
             if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 return Some(token.to_string());
+            }
+        }
+    }
+    // Fallback: extract from pp_token cookie (survives redirects from CDN/proxy)
+    if let Some(cookie) = req.headers().get(header::COOKIE) {
+        if let Ok(cookies) = cookie.to_str() {
+            for c in cookies.split(';') {
+                if let Some(token) = c.trim().strip_prefix("pp_token=") {
+                    return Some(token.to_string());
+                }
             }
         }
     }

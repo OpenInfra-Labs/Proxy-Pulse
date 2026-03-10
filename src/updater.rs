@@ -155,7 +155,15 @@ async fn check_and_update_inner(manual: bool) -> anyhow::Result<bool> {
         "New version available, triggering update"
     );
 
-    // Find run script in the binary's directory
+    if is_docker() {
+        // Docker: download binary directly, replace in-place, then exit.
+        // Docker's restart policy will restart the container with the new binary.
+        download_and_replace_binary(&tag).await?;
+        info!("Binary updated in Docker container, exiting for restart");
+        std::process::exit(0);
+    }
+
+    // Non-Docker: use the run script
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
@@ -174,6 +182,80 @@ async fn check_and_update_inner(manual: bool) -> anyhow::Result<bool> {
     }
 
     Ok(true)
+}
+
+/// Detect if running inside a Docker container
+fn is_docker() -> bool {
+    // Most reliable: /.dockerenv exists in Docker containers
+    if std::path::Path::new("/.dockerenv").exists() {
+        return true;
+    }
+    // Fallback: check cgroup for "docker" or "containerd"
+    if let Ok(cgroup) = std::fs::read_to_string("/proc/1/cgroup") {
+        if cgroup.contains("docker") || cgroup.contains("containerd") {
+            return true;
+        }
+    }
+    // Fallback: check for container environment variable
+    if std::env::var("container").is_ok() {
+        return true;
+    }
+    false
+}
+
+/// Download the latest binary and replace the current executable (for Docker updates)
+async fn download_and_replace_binary(tag: &str) -> anyhow::Result<()> {
+    let (os_name, arch_name) = detect_platform();
+    let ext = if os_name == "windows" { "zip" } else { "tar.gz" };
+    let artifact = format!("proxy-pulse-{}-{}", os_name, arch_name);
+    let pkg_file = format!("{}.{}", artifact, ext);
+    let url = format!(
+        "https://github.com/{}/releases/download/{}/{}",
+        REPO, tag, pkg_file
+    );
+
+    info!(url = %url, "Downloading update binary");
+
+    let client = reqwest::Client::builder()
+        .user_agent("Proxy-Pulse-Updater")
+        .timeout(std::time::Duration::from_secs(120))
+        .build()?;
+
+    let resp = client.get(&url).send().await?;
+    if !resp.status().is_success() && resp.status().as_u16() != 302 {
+        return Err(anyhow::anyhow!("Failed to download binary: HTTP {}", resp.status()));
+    }
+    let bytes = resp.bytes().await?;
+
+    let exe_path = std::env::current_exe()?;
+    let exe_dir = exe_path.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let pkg_path = exe_dir.join(&pkg_file);
+
+    // Write archive
+    tokio::fs::write(&pkg_path, &bytes).await?;
+
+    // Extract — for tar.gz, extract then move binary into place
+    let output = Command::new("tar")
+        .args(["xzf", &pkg_path.to_string_lossy(), "-C", &exe_dir.to_string_lossy()])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow::anyhow!("Failed to extract archive: {}", stderr));
+    }
+
+    // The archive extracts to a file named like "proxy-pulse-linux-amd64"
+    let extracted = exe_dir.join(&artifact);
+    if extracted.exists() {
+        tokio::fs::rename(&extracted, &exe_path).await?;
+    }
+
+    // Clean up archive
+    let _ = tokio::fs::remove_file(&pkg_path).await;
+
+    info!(path = %exe_path.display(), "Binary replaced successfully");
+    Ok(())
 }
 
 /// Fetch releases from GitHub Atom feed (not subject to API rate limits)
