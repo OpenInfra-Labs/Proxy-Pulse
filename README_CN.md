@@ -6,6 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
+[![Docker](https://img.shields.io/docker/v/openinfralabs/proxy-pulse?label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/openinfralabs/proxy-pulse)
 
 > **[English Documentation](README.md)** | **[法律免责声明](DISCLAIMER_CN.md)** | **[使用条款](TERMS_OF_USE_CN.md)**
 
@@ -68,6 +69,12 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-P
 - 每次启动时检查脚本和二进制是否有更新
 - 在桌面系统上自动打开浏览器访问控制面板
 - 在后台启动服务
+
+**Docker：**
+
+```bash
+docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
+```
 
 ---
 
@@ -164,6 +171,46 @@ RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
+```
+
+### Docker
+
+预构建的多架构镜像（amd64/arm64）已发布到 Docker Hub：
+
+```bash
+# 使用默认配置快速启动
+docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
+
+# 使用自定义配置
+docker run -d --name proxy-pulse \
+  -p 8080:8080 \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  -v $(pwd)/data:/app \
+  openinfralabs/proxy-pulse:latest
+
+# 使用 Docker Compose
+```
+
+创建 `docker-compose.yml`：
+
+```yaml
+services:
+  proxy-pulse:
+    image: openinfralabs/proxy-pulse:latest
+    container_name: proxy-pulse
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - proxy-pulse-data:/app
+    restart: unless-stopped
+
+volumes:
+  proxy-pulse-data:
+```
+
+```bash
+docker compose up -d
 ```
 
 ---
@@ -310,7 +357,9 @@ POST /api/v1/admin/source/sync     # 触发手动同步
 | 数据库 | SQLite（通过 sqlx 0.7） |
 | HTTP 客户端 | reqwest 0.12（支持 SOCKS） |
 | 异步运行时 | tokio |
-| 前端 | 原生 HTML/CSS/JS + Chart.js 4.4 |
+| 前端 | 原生 HTML/CSS/JS + Chart.js 4.4（编译嵌入二进制） |
+| 容器化 | Docker（多架构：amd64/arm64） |
+| CI/CD | GitHub Actions |
 
 ---
 
@@ -321,21 +370,31 @@ Proxy-Pulse/
 ├── src/
 │   ├── main.rs          # 入口点、服务器启动
 │   ├── api.rs           # REST API 路由与处理器
+│   ├── auth.rs          # 认证与授权
 │   ├── db.rs            # 数据库操作
 │   ├── models.rs        # 数据结构
 │   ├── checker.rs       # 代理健康检测与评分
 │   ├── scheduler.rs     # 后台任务调度器
 │   ├── sources.rs       # 代理来源提供者
-│   └── config.rs        # 配置加载器
-├── static/
+│   ├── config.rs        # 配置加载器
+│   └── mem_monitor.rs   # 内存使用监控
+├── static/              # 前端资源（编译嵌入二进制）
 │   ├── index.html       # 仪表盘页面
 │   ├── admin.html       # 管理面板页面
+│   ├── login.html       # 登录页面
+│   ├── settings.html    # 设置页面
 │   ├── css/style.css    # 赛博朋克风格样式
 │   ├── js/
 │   │   ├── app.js       # 仪表盘逻辑与图表
 │   │   └── i18n.js      # 国际化引擎
 │   └── i18n/            # 翻译文件（en、zh-CN、zh-TW、ja）
+├── .github/workflows/
+│   ├── release.yml      # 构建与发布（6 个平台）
+│   └── docker.yml       # Docker 构建与推送
+├── Dockerfile           # 多阶段 Docker 构建
 ├── config.example.yaml  # 示例配置文件
+├── run                  # 快速启动脚本（Linux/macOS）
+├── run.ps1              # 快速启动脚本（Windows）
 ├── Cargo.toml           # Rust 依赖配置
 ├── LICENSE              # MIT 许可证
 ├── DISCLAIMER.md        # 法律免责声明（英文）

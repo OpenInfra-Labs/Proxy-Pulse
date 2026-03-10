@@ -6,6 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
+[![Docker](https://img.shields.io/docker/v/openinfralabs/proxy-pulse?label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/openinfralabs/proxy-pulse)
 
 > **[中文文档](README_CN.md)** | **[Legal Disclaimer](DISCLAIMER.md)** | **[Terms of Use](TERMS_OF_USE.md)**
 
@@ -68,6 +69,12 @@ The `run` script automatically:
 - Checks for script and binary updates on every start
 - Opens the dashboard in your browser (on desktop systems)
 - Starts the service in the background
+
+**Docker:**
+
+```bash
+docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
+```
 
 ---
 
@@ -164,6 +171,46 @@ RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
+```
+
+### Docker
+
+Pre-built multi-arch images (amd64/arm64) are available on Docker Hub:
+
+```bash
+# Quick start with default config
+docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
+
+# With custom config
+docker run -d --name proxy-pulse \
+  -p 8080:8080 \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  -v $(pwd)/data:/app \
+  openinfralabs/proxy-pulse:latest
+
+# With Docker Compose
+```
+
+Create a `docker-compose.yml`:
+
+```yaml
+services:
+  proxy-pulse:
+    image: openinfralabs/proxy-pulse:latest
+    container_name: proxy-pulse
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - proxy-pulse-data:/app
+    restart: unless-stopped
+
+volumes:
+  proxy-pulse-data:
+```
+
+```bash
+docker compose up -d
 ```
 
 ---
@@ -310,7 +357,9 @@ Run with `--demo` flag to enable a read-only demo mode:
 | Database | SQLite (via sqlx 0.7) |
 | HTTP Client | reqwest 0.12 (with SOCKS support) |
 | Async Runtime | tokio |
-| Frontend | Vanilla HTML/CSS/JS + Chart.js 4.4 |
+| Frontend | Vanilla HTML/CSS/JS + Chart.js 4.4 (embedded in binary) |
+| Container | Docker (multi-arch: amd64/arm64) |
+| CI/CD | GitHub Actions |
 
 ---
 
@@ -321,21 +370,31 @@ Proxy-Pulse/
 ├── src/
 │   ├── main.rs          # Entry point, server setup
 │   ├── api.rs           # REST API routes & handlers
+│   ├── auth.rs          # Authentication & authorization
 │   ├── db.rs            # Database operations
 │   ├── models.rs        # Data structures
 │   ├── checker.rs       # Proxy health checker & scorer
 │   ├── scheduler.rs     # Background task scheduler
 │   ├── sources.rs       # Proxy source providers
-│   └── config.rs        # Configuration loader
-├── static/
+│   ├── config.rs        # Configuration loader
+│   └── mem_monitor.rs   # Memory usage monitor
+├── static/              # Frontend assets (embedded in binary)
 │   ├── index.html       # Dashboard page
 │   ├── admin.html       # Admin panel page
+│   ├── login.html       # Login page
+│   ├── settings.html    # Settings page
 │   ├── css/style.css    # Cyberpunk theme styles
 │   ├── js/
 │   │   ├── app.js       # Dashboard logic & charts
 │   │   └── i18n.js      # Internationalization engine
 │   └── i18n/            # Translation files (en, zh-CN, zh-TW, ja)
+├── .github/workflows/
+│   ├── release.yml      # Build & Release (6 platforms)
+│   └── docker.yml       # Docker Build & Push
+├── Dockerfile           # Multi-stage Docker build
 ├── config.example.yaml  # Example configuration
+├── run                  # Quick-start script (Linux/macOS)
+├── run.ps1              # Quick-start script (Windows)
 ├── Cargo.toml           # Rust dependencies
 ├── LICENSE              # MIT License
 ├── DISCLAIMER.md        # Legal disclaimer (EN)
