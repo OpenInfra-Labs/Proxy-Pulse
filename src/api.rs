@@ -132,9 +132,9 @@ pub struct SyncResult {
 }
 
 /// Build the API router (public + admin)
-pub fn api_router() -> Router<Arc<AppState>> {
+pub fn proxy_api_router() -> Router<Arc<AppState>> {
     Router::new()
-        // Public API
+        // Proxy API — accessible with session token OR API key
         .route("/api/v1/proxy/random", get(get_random_proxy))
         .route("/api/v1/proxy/top", get(get_top_proxies))
         .route("/api/v1/proxy/country/:country", get(get_proxies_by_country))
@@ -145,12 +145,15 @@ pub fn api_router() -> Router<Arc<AppState>> {
         .route("/api/v1/proxy/stats", get(get_stats))
         .route("/api/v1/health", get(health_check))
         .route("/api/v1/demo-mode", get(get_demo_mode))
-        // Admin API — Proxy management
+}
+
+pub fn admin_api_router() -> Router<Arc<AppState>> {
+    Router::new()
+        // Admin API — session token only
         .route("/api/v1/admin/proxy/list", get(admin_get_proxies))
         .route("/api/v1/admin/proxy/import", post(admin_import_proxies))
         .route("/api/v1/admin/proxy/purge-dead", post(admin_delete_dead_proxies))
         .route("/api/v1/admin/proxy/delete/:id", post(admin_delete_proxy))
-        // Admin API — Subscription source management
         .route("/api/v1/admin/source/list", get(admin_get_sources))
         .route("/api/v1/admin/source/add", post(admin_add_source))
         .route("/api/v1/admin/source/delete/:id", post(admin_delete_source))

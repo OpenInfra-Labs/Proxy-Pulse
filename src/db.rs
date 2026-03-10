@@ -166,6 +166,21 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // API keys table (permanent tokens for proxy export endpoints only)
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                preview TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         Ok(())
     }
 
@@ -888,5 +903,65 @@ impl Database {
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected())
+    }
+
+    pub async fn update_user_password(&self, user_id: i64, password_hash: &str) -> Result<()> {
+        sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
+            .bind(password_hash)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_user_password_hash(&self, user_id: i64) -> Result<Option<String>> {
+        let row = sqlx::query_as::<_, (String,)>(
+            "SELECT password_hash FROM users WHERE id = ?",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|r| r.0))
+    }
+
+    // ── API Keys ──
+
+    pub async fn create_api_key(&self, name: &str, key_hash: &str, preview: &str) -> Result<i64> {
+        let result = sqlx::query(
+            "INSERT INTO api_keys (name, key_hash, preview) VALUES (?, ?, ?)",
+        )
+        .bind(name)
+        .bind(key_hash)
+        .bind(preview)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.last_insert_rowid())
+    }
+
+    pub async fn validate_api_key(&self, key_hash: &str) -> Result<bool> {
+        let row = sqlx::query_as::<_, (i64,)>(
+            "SELECT id FROM api_keys WHERE key_hash = ?",
+        )
+        .bind(key_hash)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.is_some())
+    }
+
+    pub async fn get_all_api_keys(&self) -> Result<Vec<(i64, String, String, String)>> {
+        let rows = sqlx::query_as::<_, (i64, String, String, String)>(
+            "SELECT id, name, preview, created_at FROM api_keys ORDER BY created_at DESC",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    pub async fn delete_api_key(&self, id: i64) -> Result<bool> {
+        let result = sqlx::query("DELETE FROM api_keys WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
     }
 }

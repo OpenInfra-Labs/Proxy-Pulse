@@ -64,8 +64,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Build application router
     //
-    // Auth-free routes: /login, /api/v1/auth/*, /static/*
-    // All other routes require authentication (token via header or cookie)
+    // Auth-free routes: /login, /api/v1/auth/status|setup|login|logout, /static/*
+    // Proxy export routes: accept session token OR permanent API key
+    // All other routes: require session token only
     //
     let auth_api_routes = Router::new()
         .route("/api/v1/auth/status", axum::routing::get(auth::auth_status))
@@ -73,8 +74,20 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/auth/login", axum::routing::post(auth::login))
         .route("/api/v1/auth/logout", axum::routing::post(auth::logout));
 
-    // Protected API routes (require Bearer token)
-    let protected_api = api::api_router()
+    // Proxy export routes — accept session token OR API key
+    let proxy_api = api::proxy_api_router()
+        .layer(middleware::from_fn_with_state(state.clone(), auth::proxy_api_auth_middleware));
+
+    // Admin/internal API routes — session token only
+    let admin_api = api::admin_api_router()
+        .layer(middleware::from_fn_with_state(state.clone(), auth::auth_middleware));
+
+    // Auth-management routes (change password, API keys) — session token only
+    let auth_mgmt = Router::new()
+        .route("/api/v1/auth/change-password", axum::routing::post(auth::change_password))
+        .route("/api/v1/auth/api-keys", axum::routing::get(auth::list_api_keys))
+        .route("/api/v1/auth/api-keys", axum::routing::post(auth::create_api_key))
+        .route("/api/v1/auth/api-keys/:id", axum::routing::delete(auth::delete_api_key))
         .layer(middleware::from_fn_with_state(state.clone(), auth::auth_middleware));
 
     // Protected page routes (redirect to /login if no cookie)
@@ -88,10 +101,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/login", axum::routing::get(login_page))
         // Auth API (public)
         .merge(auth_api_routes)
+        // Auth management (session-protected)
+        .merge(auth_mgmt)
         // Protected pages
         .merge(protected_pages)
-        // Protected API
-        .merge(protected_api)
+        // Proxy export API (session or API key)
+        .merge(proxy_api)
+        // Admin API (session only)
+        .merge(admin_api)
         // Static assets (public — CSS/JS/i18n needed for login page)
         .nest_service("/static", ServeDir::new("static"))
         // Middleware

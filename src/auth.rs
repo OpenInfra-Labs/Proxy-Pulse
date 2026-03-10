@@ -253,3 +253,215 @@ pub async fn page_auth_middleware(
         None => axum::response::Redirect::to("/login").into_response(),
     }
 }
+
+// ── Change Password ──
+
+#[derive(Debug, Deserialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+pub async fn change_password(
+    State(state): State<Arc<AppState>>,
+    req: Request,
+) -> Result<Json<AuthResponse>, (StatusCode, Json<AuthResponse>)> {
+    let err = |msg: &str| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(AuthResponse { success: false, token: None, error: Some(msg.to_string()) }),
+        )
+    };
+
+    // Extract user from token
+    let token = extract_token(&req).ok_or_else(|| err("Authentication required"))?;
+    let user_id = state.db.validate_session(&token).await
+        .map_err(|_| err("Invalid session"))?
+        .ok_or_else(|| err("Invalid session"))?;
+
+    // Parse body manually since we already consumed the request for token extraction
+    let body_bytes = axum::body::to_bytes(req.into_body(), 1024 * 16).await
+        .map_err(|_| err("Invalid request body"))?;
+    let body: ChangePasswordRequest = serde_json::from_slice(&body_bytes)
+        .map_err(|_| err("Invalid request body"))?;
+
+    if body.new_password.len() < 6 {
+        return Err(err("New password must be at least 6 characters"));
+    }
+
+    // Verify current password
+    let current_hash = state.db.get_user_password_hash(user_id).await
+        .map_err(|_| err("Failed to verify password"))?
+        .ok_or_else(|| err("User not found"))?;
+
+    if !bcrypt::verify(&body.current_password, &current_hash).unwrap_or(false) {
+        return Err(err("Current password is incorrect"));
+    }
+
+    // Hash and update
+    let new_hash = bcrypt::hash(&body.new_password, bcrypt::DEFAULT_COST)
+        .map_err(|_| err("Failed to hash password"))?;
+    state.db.update_user_password(user_id, &new_hash).await
+        .map_err(|_| err("Failed to update password"))?;
+
+    Ok(Json(AuthResponse { success: true, token: None, error: None }))
+}
+
+// ── API Key Management ──
+
+#[derive(Debug, Deserialize)]
+pub struct CreateApiKeyRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiKeyCreatedResponse {
+    pub success: bool,
+    pub id: i64,
+    pub key: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiKeyInfo {
+    pub id: i64,
+    pub name: String,
+    pub preview: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiKeyListResponse {
+    pub success: bool,
+    pub keys: Vec<ApiKeyInfo>,
+}
+
+fn hash_api_key(key: &str) -> String {
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(key.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+pub async fn create_api_key(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<CreateApiKeyRequest>,
+) -> Result<Json<ApiKeyCreatedResponse>, (StatusCode, Json<AuthResponse>)> {
+    let err = |msg: &str| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(AuthResponse { success: false, token: None, error: Some(msg.to_string()) }),
+        )
+    };
+
+    let name = body.name.trim().to_string();
+    if name.is_empty() {
+        return Err(err("API key name cannot be empty"));
+    }
+
+    // Generate a unique API key with "ppk_" prefix
+    let raw_key = format!("ppk_{}", generate_token());
+    let key_hash = hash_api_key(&raw_key);
+    let preview = format!("ppk_{}...{}", &raw_key[4..12], &raw_key[raw_key.len()-4..]);
+
+    let id = state.db.create_api_key(&name, &key_hash, &preview).await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(AuthResponse { success: false, token: None, error: Some(format!("Failed to create API key: {}", e)) }),
+        )
+    })?;
+
+    Ok(Json(ApiKeyCreatedResponse { success: true, id, key: raw_key }))
+}
+
+pub async fn list_api_keys(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<ApiKeyListResponse>, (StatusCode, Json<AuthResponse>)> {
+    let keys = state.db.get_all_api_keys().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(AuthResponse { success: false, token: None, error: Some("Failed to list API keys".to_string()) }),
+        )
+    })?;
+
+    let keys: Vec<ApiKeyInfo> = keys.into_iter().map(|(id, name, preview, created_at)| {
+        ApiKeyInfo { id, name, preview, created_at }
+    }).collect();
+
+    Ok(Json(ApiKeyListResponse { success: true, keys }))
+}
+
+pub async fn delete_api_key(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<AuthResponse>)> {
+    let deleted = state.db.delete_api_key(id).await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(AuthResponse { success: false, token: None, error: Some("Failed to delete API key".to_string()) }),
+        )
+    })?;
+
+    Ok(Json(serde_json::json!({ "success": true, "deleted": deleted })))
+}
+
+/// Middleware for proxy export endpoints: accepts either session token OR API key
+pub async fn proxy_api_auth_middleware(
+    State(state): State<Arc<AppState>>,
+    req: Request,
+    next: Next,
+) -> Response {
+    // Try session token first (Bearer header)
+    if let Some(token) = extract_bearer_token(&req) {
+        if let Ok(Some(_)) = state.db.validate_session(&token).await {
+            let new_expires = Utc::now().naive_utc() + Duration::hours(TOKEN_EXPIRY_HOURS);
+            let _ = state.db.refresh_session(&token, new_expires).await;
+            return next.run(req).await;
+        }
+    }
+
+    // Try API key from query param ?api_key=ppk_xxx or header X-API-Key
+    let api_key = extract_api_key(&req);
+    if let Some(key) = api_key {
+        let key_hash = hash_api_key(&key);
+        if let Ok(true) = state.db.validate_api_key(&key_hash).await {
+            return next.run(req).await;
+        }
+    }
+
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(serde_json::json!({ "success": false, "error": "Authentication required. Use Bearer token or API key." })),
+    )
+        .into_response()
+}
+
+fn extract_bearer_token(req: &Request) -> Option<String> {
+    req.headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .map(|s| s.to_string())
+}
+
+fn extract_api_key(req: &Request) -> Option<String> {
+    // Try X-API-Key header
+    if let Some(key) = req.headers().get("X-API-Key").and_then(|v| v.to_str().ok()) {
+        if key.starts_with("ppk_") {
+            return Some(key.to_string());
+        }
+    }
+
+    // Try ?api_key= query param
+    if let Some(query) = req.uri().query() {
+        for pair in query.split('&') {
+            if let Some(key) = pair.strip_prefix("api_key=") {
+                let decoded = urlencoding::decode(key).unwrap_or_else(|_| key.into());
+                if decoded.starts_with("ppk_") {
+                    return Some(decoded.to_string());
+                }
+            }
+        }
+    }
+
+    None
+}
