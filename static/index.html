@@ -188,12 +188,15 @@
                     </div>
                     <div class="api-toggle-group">
                         <label class="api-toggle-label" data-i18n="dashboard.api_token">Token</label>
-                        <select id="apiTokenSelect" onchange="onTokenSelectChange()" style="flex:1;padding:6px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;max-width:320px;cursor:pointer;">
-                            <option value="" data-i18n="dashboard.api_token_none">No Token (session auth)</option>
-                        </select>
+                        <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:400px;">
+                            <select id="apiTokenSelect" onchange="onTokenSelectChange()" style="flex:1;padding:6px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;cursor:pointer;">
+                                <option value="" data-i18n="dashboard.api_token_none">Select Token</option>
+                            </select>
+                            <button id="quickCreateTokenBtn" class="api-toggle-btn" onclick="quickCreateToken()" style="white-space:nowrap;padding:6px 12px;font-size:0.78rem;display:none;" data-i18n="dashboard.api_token_create">+ Create</button>
+                        </div>
                     </div>
-                    <div class="api-result-row" style="margin-top:14px;">
-                        <code class="api-link-url" id="apiResultUrl">/api/v1/proxy/json?sort=score&amp;limit=10</code>
+                    <div class="api-result-row" id="apiResultRow" style="margin-top:14px;display:none;">
+                        <code class="api-link-url" id="apiResultUrl"></code>
                         <button class="api-link-copy" id="apiCopyBtn" onclick="copyGeneratedApiLink()" title="Copy">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                         </button>
@@ -354,20 +357,25 @@
         const limit = getToggleValue('apiLimitBtns');
         const select = document.getElementById('apiTokenSelect');
         const token = select ? select.value : '';
+        const resultRow = document.getElementById('apiResultRow');
+
+        if (!token) {
+            resultRow.style.display = 'none';
+            return;
+        }
+
         let url = `/api/v1/proxy/${format}?sort=${sort}`;
         if (limit !== 'all') {
             url += `&limit=${limit}`;
         }
-        if (token) {
-            url += `&api_key=${encodeURIComponent(token)}`;
-        }
+        url += `&api_key=${encodeURIComponent(token)}`;
         document.getElementById('apiResultUrl').textContent = url;
+        resultRow.style.display = '';
     }
 
     initApiToggles();
 
     // ─── API Token Management ───
-    // Store created API keys in localStorage for reuse in the dashboard
     function getSavedApiKeys() {
         try { return JSON.parse(localStorage.getItem('pp_api_keys') || '[]'); }
         catch { return []; }
@@ -387,8 +395,9 @@
             while (select.options.length > 1) select.remove(1);
 
             const saved = getSavedApiKeys();
-            // Build options from server keys, matching with locally-saved full keys
             const activeKeys = json.keys.filter(k => !k.expired);
+            let hasSelectable = false;
+
             activeKeys.forEach(k => {
                 const local = saved.find(s => s.id === k.id);
                 const opt = document.createElement('option');
@@ -398,8 +407,11 @@
                     if (k.expires_at) {
                         const exp = new Date(k.expires_at + 'Z');
                         label += ` (${I18N.t('dashboard.api_token_expires') || 'expires'} ${exp.toLocaleDateString()})`;
+                    } else {
+                        label += ` (${I18N.t('admin.expiry_never') || 'Never expires'})`;
                     }
                     opt.textContent = label;
+                    hasSelectable = true;
                 } else {
                     opt.value = '';
                     opt.disabled = true;
@@ -414,12 +426,51 @@
                 select.appendChild(opt);
             });
 
+            // Show quick-create button if no selectable keys
+            document.getElementById('quickCreateTokenBtn').style.display = hasSelectable ? 'none' : '';
+
+            // Auto-select first available key
+            if (hasSelectable) {
+                for (let i = 1; i < select.options.length; i++) {
+                    if (!select.options[i].disabled && select.options[i].value) {
+                        select.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
             // Clean up saved keys that no longer exist on server
             const serverIds = json.keys.map(k => k.id);
             const cleaned = saved.filter(s => serverIds.includes(s.id));
             localStorage.setItem('pp_api_keys', JSON.stringify(cleaned));
+
+            updateApiUrl();
         } catch(e) { /* ignore */ }
     }
+
+    async function quickCreateToken() {
+        const btn = document.getElementById('quickCreateTokenBtn');
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+            const resp = await authFetch('/api/v1/auth/api-keys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Dashboard', expires_in: '30d' }),
+            });
+            const json = await resp.json();
+            if (json.success) {
+                // Save full key to localStorage
+                const saved = getSavedApiKeys();
+                saved.push({ id: json.id, name: 'Dashboard', key: json.key });
+                localStorage.setItem('pp_api_keys', JSON.stringify(saved));
+                await loadApiTokens();
+            }
+        } catch(e) { /* ignore */ }
+        btn.disabled = false;
+        btn.textContent = I18N.t('dashboard.api_token_create') || '+ Create';
+    }
+
     loadApiTokens();
 
     // Init i18n then start app
