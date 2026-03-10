@@ -6,7 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://ghcr.io/openinfra-labs/proxy-pulse)
+[![Docker](https://img.shields.io/badge/docker-Docker%20Hub-blue.svg)](https://hub.docker.com/r/openinfralabs/proxy-pulse)
 
 > **[中文文档](docs/README_CN.md)** | **[Legal Terms](docs/LEGAL.md)**
 
@@ -71,26 +71,26 @@ The `run` script automatically:
 
 ### Docker
 
-Multi-arch Docker images (amd64/arm64) are published to GitHub Container Registry on every release:
+Multi-arch Docker images (amd64/arm64) are published to Docker Hub on every release:
 
 ```bash
 # Run with default settings
-docker run -d --name proxy-pulse -p 8080:8080 ghcr.io/openinfra-labs/proxy-pulse:latest
+docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
 
 # Persist data across container restarts
 docker run -d --name proxy-pulse -p 8080:8080 \
   -v proxy-pulse-data:/app \
   --restart unless-stopped \
-  ghcr.io/openinfra-labs/proxy-pulse:latest
+  openinfralabs/proxy-pulse:latest
 
 # Pin to a specific version
 docker run -d --name proxy-pulse -p 8080:8080 \
-  ghcr.io/openinfra-labs/proxy-pulse:v1.2.0
+  openinfralabs/proxy-pulse:v1.3.0
 
 # Custom port + demo mode
 docker run -d --name proxy-pulse -p 3000:3000 \
   -e PORT=3000 \
-  ghcr.io/openinfra-labs/proxy-pulse:latest -- --demo
+  openinfralabs/proxy-pulse:latest -- --demo
 ```
 
 ---
