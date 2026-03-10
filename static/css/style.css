@@ -2,6 +2,10 @@
    Proxy Pulse — Futuristic Dashboard Theme
    ───────────────────────────────────────────── */
 
+/* Prevent flash of untranslated content */
+html:not(.i18n-ready) body { opacity: 0; }
+body { transition: opacity 0.15s ease; }
+
 :root {
     /* Core palette */
     --bg-primary: #0a0e1a;

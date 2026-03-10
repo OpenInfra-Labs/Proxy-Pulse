@@ -1122,6 +1122,15 @@
     I18N.init().then(() => {
         loadUserInfo();
         loadPreferences();
+        loadProxies();
+        loadSources();
+        loadUsers();
+        // Re-render dynamic content when locale changes
+        I18N.onChange(() => {
+            loadProxies();
+            loadSources();
+            loadUsers();
+        });
     });
 
     // ─── Tab Switching (with URL hash persistence) ───
@@ -1516,10 +1525,7 @@
         return secs + ' s';
     }
 
-    // ─── Initialize ───
-    loadProxies();
-    loadSources();
-    loadUsers();
+    // ─── Data loading moved into I18N.init().then() above ───
 
     // ═══════════════════════════════════
     //  User Management

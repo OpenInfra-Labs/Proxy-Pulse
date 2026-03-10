@@ -6,6 +6,7 @@ const I18N = {
     _locale: 'en',
     _translations: {},
     _listeners: [],
+    ready: Promise.resolve(),
 
     get locale() { return this._locale; },
 
@@ -14,7 +15,8 @@ const I18N = {
         const lang = saved || (navigator.language.startsWith('zh') 
             ? (navigator.language.includes('TW') || navigator.language.includes('HK') ? 'zh-TW' : 'zh-CN')
             : navigator.language.startsWith('ja') ? 'ja' : 'en');
-        await this.setLocale(lang);
+        this.ready = this.setLocale(lang);
+        return this.ready;
     },
 
     async setLocale(locale) {
@@ -68,6 +70,7 @@ const I18N = {
         // Update page title 
         const titleKey = document.querySelector('title')?.getAttribute('data-i18n');
         if (titleKey) document.title = this.t(titleKey);
+        document.documentElement.classList.add('i18n-ready');
     },
 
     onChange(fn) {

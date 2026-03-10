@@ -81,7 +81,8 @@ const CHART_PALETTE = [
 ];
 
 // ─── Initialize ───
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await I18N.ready;
     initCharts();
     fetchAllData();
     setInterval(fetchAllData, REFRESH_INTERVAL);
