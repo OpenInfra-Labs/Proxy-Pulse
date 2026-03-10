@@ -6,6 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://ghcr.io/openinfra-labs/proxy-pulse)
 
 > **[English Documentation](../README.md)** | **[法律条款](LEGAL_CN.md)**
 
@@ -65,6 +66,30 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-P
 - 每次启动时检查脚本和二进制是否有更新
 - 在桌面系统上自动打开浏览器访问控制面板
 - 在后台启动服务
+
+### Docker
+
+每次发版自动构建多架构 Docker 镜像（amd64/arm64），发布至 GitHub Container Registry：
+
+```bash
+# 使用默认配置运行
+docker run -d --name proxy-pulse -p 8080:8080 ghcr.io/openinfra-labs/proxy-pulse:latest
+
+# 持久化数据（容器重启不丢失）
+docker run -d --name proxy-pulse -p 8080:8080 \
+  -v proxy-pulse-data:/app \
+  --restart unless-stopped \
+  ghcr.io/openinfra-labs/proxy-pulse:latest
+
+# 指定版本
+docker run -d --name proxy-pulse -p 8080:8080 \
+  ghcr.io/openinfra-labs/proxy-pulse:v1.2.0
+
+# 自定义端口 + 演示模式
+docker run -d --name proxy-pulse -p 3000:3000 \
+  -e PORT=3000 \
+  ghcr.io/openinfra-labs/proxy-pulse:latest -- --demo
+```
 
 ---
 
@@ -254,7 +279,7 @@ POST /api/v1/admin/settings/checker     # 保存检测配置
 | HTTP 客户端 | reqwest 0.12（支持 SOCKS） |
 | 异步运行时 | tokio |
 | 前端 | 原生 HTML/CSS/JS + Chart.js 4.4（编译嵌入二进制） |
-| CI/CD | GitHub Actions（自动构建 6 平台） |
+| CI/CD | GitHub Actions（自动构建 6 平台 + Docker 多架构镜像） |
 
 ---
 
@@ -282,6 +307,7 @@ Proxy-Pulse/
 │   ├── js/              # 仪表盘逻辑 + 国际化引擎
 │   └── i18n/            # 翻译文件（en、zh-CN、zh-TW、ja）
 ├── docs/                # 项目文档
+├── Dockerfile           # 多架构 Docker 镜像
 ├── run                  # 快速启动脚本（Linux/macOS）
 ├── run.ps1              # 快速启动脚本（Windows）
 ├── Cargo.toml           # Rust 依赖配置

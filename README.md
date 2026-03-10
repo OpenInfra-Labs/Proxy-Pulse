@@ -6,6 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://ghcr.io/openinfra-labs/proxy-pulse)
 
 > **[中文文档](docs/README_CN.md)** | **[Legal Terms](docs/LEGAL.md)**
 
@@ -67,6 +68,30 @@ The `run` script automatically:
 - Checks for script and binary updates on every start
 - Opens the dashboard in your browser (on desktop systems)
 - Starts the service in the background
+
+### Docker
+
+Multi-arch Docker images (amd64/arm64) are published to GitHub Container Registry on every release:
+
+```bash
+# Run with default settings
+docker run -d --name proxy-pulse -p 8080:8080 ghcr.io/openinfra-labs/proxy-pulse:latest
+
+# Persist data across container restarts
+docker run -d --name proxy-pulse -p 8080:8080 \
+  -v proxy-pulse-data:/app \
+  --restart unless-stopped \
+  ghcr.io/openinfra-labs/proxy-pulse:latest
+
+# Pin to a specific version
+docker run -d --name proxy-pulse -p 8080:8080 \
+  ghcr.io/openinfra-labs/proxy-pulse:v1.2.0
+
+# Custom port + demo mode
+docker run -d --name proxy-pulse -p 3000:3000 \
+  -e PORT=3000 \
+  ghcr.io/openinfra-labs/proxy-pulse:latest -- --demo
+```
 
 ---
 
@@ -303,7 +328,7 @@ Run with `--demo` flag to enable a read-only demo mode:
 | HTTP Client | reqwest 0.12 (with SOCKS support) |
 | Async Runtime | tokio |
 | Frontend | Vanilla HTML/CSS/JS + Chart.js 4.4 (embedded in binary) |
-| CI/CD | GitHub Actions (6-platform builds) |
+| CI/CD | GitHub Actions (6-platform builds + Docker multi-arch) |
 
 ---
 
@@ -335,7 +360,8 @@ Proxy-Pulse/
 │   ├── LEGAL.md         # Legal terms (EN)
 │   └── LEGAL_CN.md      # Legal terms (CN)
 ├── .github/workflows/
-│   └── release.yml      # Build & Release (6 platforms)
+│   └── release.yml      # Build & Release (6 platforms + Docker)
+├── Dockerfile           # Multi-arch Docker image
 ├── run                  # Quick-start script (Linux/macOS)
 ├── run.ps1              # Quick-start script (Windows)
 ├── Cargo.toml           # Rust dependencies
