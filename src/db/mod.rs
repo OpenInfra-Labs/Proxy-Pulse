@@ -98,6 +98,11 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_check_logs_checked_at ON check_logs(checked_at);",
+        )
+        .execute(&self.pool)
+        .await?;
 
         // Subscription sources table
         sqlx::query(

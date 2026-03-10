@@ -342,7 +342,16 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
-        Ok(result.rows_affected())
+        let deleted = result.rows_affected();
+
+        // Reclaim disk space after large deletions
+        if deleted > 0 {
+            let _ = sqlx::query("VACUUM")
+                .execute(&self.pool)
+                .await;
+        }
+
+        Ok(deleted)
     }
 
     // ── Admin: Proxy Management ──
