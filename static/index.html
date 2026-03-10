@@ -204,7 +204,6 @@
                                 <div class="token-dropdown-menu" id="tokenDropdownMenu"></div>
                                 <input type="hidden" id="apiTokenSelect" value="">
                             </div>
-                            <button id="quickCreateTokenBtn" class="api-toggle-btn" onclick="quickCreateToken()" style="white-space:nowrap;padding:6px 12px;font-size:0.78rem;display:none;" data-i18n="dashboard.api_token_create">+ Create</button>
                         </div>
                     </div>
                     <div class="api-result-row" id="apiResultRow" style="margin-top:14px;display:none;">
@@ -520,8 +519,17 @@
                 menu.appendChild(empty);
             }
 
-            // Show quick-create button if no selectable keys
-            document.getElementById('quickCreateTokenBtn').style.display = hasSelectable ? 'none' : '';
+            // Always add "Create Token" option at the bottom
+            if (activeKeys.length > 0) {
+                const sep = document.createElement('div');
+                sep.style.cssText = 'height:1px;background:var(--border-subtle);margin:4px 6px;';
+                menu.appendChild(sep);
+            }
+            const createItem = document.createElement('div');
+            createItem.className = 'token-dropdown-item token-create-item';
+            createItem.innerHTML = `<span class="token-item-name" style="color:var(--accent-cyan);">+ ${escapeHtmlInline(I18N.t('dashboard.api_token_create') || 'Create Token')}</span>`;
+            createItem.addEventListener('click', (e) => { e.stopPropagation(); quickCreateToken(); });
+            menu.appendChild(createItem);
 
             // Auto-select first available key
             if (firstKey) {
@@ -544,9 +552,8 @@
     }
 
     async function quickCreateToken() {
-        const btn = document.getElementById('quickCreateTokenBtn');
-        btn.disabled = true;
-        btn.textContent = '...';
+        const createEl = document.querySelector('.token-create-item');
+        if (createEl) { createEl.style.pointerEvents = 'none'; createEl.style.opacity = '0.5'; }
         try {
             const resp = await authFetch('/api/v1/auth/api-keys', {
                 method: 'POST',
@@ -562,8 +569,7 @@
                 await loadApiTokens();
             }
         } catch(e) { /* ignore */ }
-        btn.disabled = false;
-        btn.textContent = I18N.t('dashboard.api_token_create') || '+ Create';
+        if (createEl) { createEl.style.pointerEvents = ''; createEl.style.opacity = ''; }
     }
 
     // Defer loadApiTokens until authFetch is available (defined in app.js loaded after this script)
