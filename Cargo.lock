@@ -1368,7 +1368,7 @@ dependencies = [
 
 [[package]]
 name = "proxy-pulse"
-version = "1.0.9"
+version = "1.1.1"
 dependencies = [
  "anyhow",
  "axum",
