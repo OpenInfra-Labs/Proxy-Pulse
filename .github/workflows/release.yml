@@ -25,34 +25,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Bump patch version and tag
+      - name: Determine version and tag
         id: bump
         run: |
           CURRENT=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
-          MINOR=$(echo "$CURRENT" | cut -d. -f2)
-          PATCH=$(echo "$CURRENT" | cut -d. -f3)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          CUR_MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          CUR_MINOR=$(echo "$CURRENT" | cut -d. -f2)
 
-          echo "Bumping $CURRENT → $NEW_VERSION"
+          # Get previous release tag version
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          PREV_VERSION="${PREV_TAG#v}"
+          PREV_MAJOR=$(echo "$PREV_VERSION" | cut -d. -f1)
+          PREV_MINOR=$(echo "$PREV_VERSION" | cut -d. -f2)
+
+          if [ "$CUR_MAJOR" != "$PREV_MAJOR" ] || [ "$CUR_MINOR" != "$PREV_MINOR" ]; then
+            # Major or minor changed — manual bump, use as-is
+            NEW_VERSION="$CURRENT"
+            echo "Manual version bump detected: $PREV_VERSION → $NEW_VERSION"
+          else
+            # Same major.minor — auto patch+1
+            PATCH=$(echo "$CURRENT" | cut -d. -f3)
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="${CUR_MAJOR}.${CUR_MINOR}.${NEW_PATCH}"
+            echo "Auto patch bump: $CURRENT → $NEW_VERSION"
+          fi
+
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-          # Update version in Cargo.toml
+          # Update version in Cargo.toml and Cargo.lock
           sed -i "s/^version = \"$CURRENT\"/version = \"$NEW_VERSION\"/" Cargo.toml
-
-          # Update version in Cargo.lock
           sed -i '/^name = "proxy-pulse"/{n;s/version = ".*"/version = "'"$NEW_VERSION"'"/}' Cargo.lock
-
-          # Update version in src/main.rs
-          sed -i "s/Proxy Pulse v$CURRENT/Proxy Pulse v$NEW_VERSION/" src/main.rs
 
           # Commit and tag
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "release: v$NEW_VERSION [skip ci]"
+          git diff --cached --quiet && echo "No changes to commit" || git commit -m "release: v$NEW_VERSION [skip ci]"
           git tag "v$NEW_VERSION"
           git push origin main --tags
 

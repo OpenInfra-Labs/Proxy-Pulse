@@ -10,8 +10,6 @@ $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SCRIPT_PATH = $MyInvocation.MyCommand.Path
 $BINARY = Join-Path $SCRIPT_DIR "proxy-pulse.exe"
 $PID_FILE = Join-Path $SCRIPT_DIR ".proxy-pulse.pid"
-$CONFIG_FILE = Join-Path $SCRIPT_DIR "config.yaml"
-$CONFIG_EXAMPLE = Join-Path $SCRIPT_DIR "config.example.yaml"
 $VERSION_FILE = Join-Path $SCRIPT_DIR ".proxy-pulse.version"
 $LOG_FILE = Join-Path $SCRIPT_DIR "proxy-pulse.log"
 
@@ -77,13 +75,6 @@ function Download-Binary {
     Write-Host "Binary installed: $BINARY ($Version)"
 }
 
-# ─── Download config.example.yaml ───
-function Download-ConfigExample {
-    Write-Host "Downloading config.example.yaml..."
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/$REPO/main/config.example.yaml" -OutFile $CONFIG_EXAMPLE -UseBasicParsing
-    Write-Host "Config template downloaded: $CONFIG_EXAMPLE"
-}
-
 # ─── Check for binary update ───
 function Check-BinaryUpdate {
     $latestVersion = Get-LatestVersion
@@ -105,28 +96,6 @@ function Check-BinaryUpdate {
     } else {
         Write-Host "Binary is up to date ($currentVersion)."
     }
-}
-
-# ─── Ensure config ───
-function Ensure-Config {
-    if (-not (Test-Path $CONFIG_EXAMPLE)) {
-        Download-ConfigExample
-    }
-    if (-not (Test-Path $CONFIG_FILE)) {
-        Copy-Item $CONFIG_EXAMPLE $CONFIG_FILE
-        Write-Host "Config: created config.yaml from config.example.yaml (default settings)."
-    }
-}
-
-# ─── Read server port from config ───
-function Get-ServerPort {
-    if (Test-Path $CONFIG_FILE) {
-        $match = Select-String -Path $CONFIG_FILE -Pattern '^\s+port:\s*(\d+)' | Select-Object -First 1
-        if ($match) {
-            return $match.Matches.Groups[1].Value
-        }
-    }
-    return "8080"
 }
 
 # ─── Open browser ───
@@ -175,7 +144,6 @@ function Start-Service_ {
 
     Self-Update
     Check-BinaryUpdate
-    Ensure-Config
 
     Write-Host "Starting Proxy Pulse..."
     $proc = Start-Process -FilePath $BINARY -WorkingDirectory $SCRIPT_DIR `
@@ -186,7 +154,7 @@ function Start-Service_ {
     Write-Host "Log: $LOG_FILE"
 
     # Auto-open browser
-    $port = Get-ServerPort
+    $port = if ($env:PORT) { $env:PORT } else { "8080" }
     Start-Sleep -Seconds 1
     Open-Browser "http://localhost:$port"
 }
