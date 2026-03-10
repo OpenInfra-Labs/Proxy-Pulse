@@ -472,6 +472,62 @@
         [data-theme="light"] .admin-tab.active {
             background: rgba(8, 145, 178, 0.1);
         }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 9000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            padding: 28px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+        .modal-close:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.08);
+        }
+        [data-theme="light"] .modal {
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
@@ -487,7 +543,7 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <div class="logo">
+            <a href="/" class="logo" style="text-decoration:none;color:inherit;">
                 <div class="logo-icon">
                     <svg viewBox="0 0 32 32" fill="none">
                         <circle cx="16" cy="16" r="14" stroke="url(#grad1)" stroke-width="2"/>
@@ -505,13 +561,9 @@
                     <h1>Proxy Pulse</h1>
                     <span class="logo-subtitle" data-i18n="admin.subtitle">Admin Control Panel</span>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="header-right">
-            <div class="nav-links">
-                <a href="/" class="nav-link" data-i18n="common.dashboard">Dashboard</a>
-                <a href="/admin" class="nav-link active" data-i18n="common.admin">Admin</a>
-            </div>
             <div class="status-pill" id="systemStatus">
                 <span class="status-dot"></span>
                 <span class="status-text" data-i18n="common.system_online">System Online</span>
@@ -556,12 +608,6 @@
                 </svg>
                 <span data-i18n="admin.tab_sources">Subscription Sources</span>
             </button>
-            <button class="admin-tab" data-tab="import">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span data-i18n="admin.tab_import">Bulk Import</span>
-            </button>
             <button class="admin-tab" data-tab="users">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
@@ -593,6 +639,12 @@
                             <option value="true" data-i18n="admin.filter_alive">Alive</option>
                             <option value="false" data-i18n="admin.filter_dead">Dead</option>
                         </select>
+                        <button class="btn btn-primary btn-sm" onclick="openImportModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span data-i18n="admin.tab_import">Bulk Import</span>
+                        </button>
                         <button class="btn btn-danger btn-sm" onclick="deleteDeadProxies()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
@@ -635,79 +687,6 @@
 
         <!-- ═══ Tab: Subscription Sources ═══ -->
         <div class="tab-panel" id="panel-sources">
-            <!-- Add Source Form -->
-            <div class="admin-section">
-                <div class="admin-section-header">
-                    <div class="admin-section-title">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Subscription Source
-                    </div>
-                </div>
-                <form id="addSourceForm" onsubmit="addSource(event)">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.source_name">Source Name</label>
-                            <input type="text" class="form-input" id="sourceName" data-i18n-placeholder="admin.source_name_placeholder" placeholder="e.g. Free Proxy List #1" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.source_type">Source Type</label>
-                            <select class="form-select" id="sourceType" onchange="toggleSourceFields()">
-                                <option value="url" data-i18n="admin.type_url">URL Subscription</option>
-                                <option value="text" data-i18n="admin.type_text">Text / Paste List</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group" id="sourceUrlGroup">
-                        <label class="form-label" data-i18n="admin.subscription_url">Subscription URL</label>
-                        <input type="url" class="form-input" id="sourceUrl" data-i18n-placeholder="admin.subscription_url_placeholder" placeholder="https://example.com/proxy-list.txt">
-                        <p class="form-hint" data-i18n="admin.url_hint">TXT subscription link that returns one proxy per line (ip:port or protocol://ip:port)</p>
-                    </div>
-                    <div class="form-group" id="sourceContentGroup" style="display:none;">
-                        <label class="form-label" data-i18n="admin.proxy_list_content">Proxy List Content</label>
-                        <textarea class="form-textarea" id="sourceContent" placeholder="192.168.1.1:8080&#10;socks5://10.0.0.1:1080&#10;10.0.0.2:1080:socks4"></textarea>
-                        <p class="form-hint" data-i18n="admin.content_hint">One proxy per line. Supports: ip:port, protocol://ip:port, ip:port:protocol</p>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.protocol_override">Protocol Override</label>
-                            <select class="form-select" id="sourceProtocol">
-                                <option value="auto" data-i18n="admin.auto_detect">Auto Detect</option>
-                                <option value="http">HTTP</option>
-                                <option value="https">HTTPS</option>
-                                <option value="socks4">SOCKS4</option>
-                                <option value="socks5">SOCKS5</option>
-                            </select>
-                            <p class="form-hint" data-i18n="admin.protocol_hint">Override the protocol for all proxies in this source, or use auto to keep the parsed protocol</p>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.sync_interval">Auto Sync Interval</label>
-                            <select class="form-select" id="sourceSyncInterval">
-                                <option value="300">5 min</option>
-                                <option value="600">10 min</option>
-                                <option value="1800">30 min</option>
-                                <option value="3600">1 h</option>
-                                <option value="10800">3 h</option>
-                                <option value="21600" selected>6 h</option>
-                                <option value="86400">24 h</option>
-                            </select>
-                            <p class="form-hint" data-i18n="admin.sync_interval_hint">How often this source is automatically synced</p>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px;">
-                            <button type="submit" class="btn btn-primary">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                                </svg>
-                                <span data-i18n="admin.btn_add_source">Add Source</span>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
             <!-- Source List -->
             <div class="admin-section">
                 <div class="admin-section-header">
@@ -717,12 +696,20 @@
                         </svg>
                         Active Sources
                     </div>
-                    <button class="btn btn-primary btn-sm" onclick="syncAllSources()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
-                        </svg>
-                        <span data-i18n="admin.sync_all">Sync All Now</span>
-                    </button>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-primary btn-sm" onclick="openAddSourceModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            <span data-i18n="admin.btn_add_source">Add Source</span>
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="syncAllSources()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                            </svg>
+                            <span data-i18n="admin.sync_all">Sync All Now</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table class="data-table" id="sourceTable">
@@ -748,95 +735,8 @@
             </div>
         </div>
 
-        <!-- ═══ Tab: Bulk Import ═══ -->
-        <div class="tab-panel" id="panel-import">
-            <div class="admin-section">
-                <div class="admin-section-header">
-                    <div class="admin-section-title">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        Quick Bulk Import
-                    </div>
-                </div>
-                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:20px;" data-i18n="admin.import_desc">
-                    Paste a list of proxies below to import them immediately into the pool. They will be queued for health checking automatically.
-                </p>
-                <form id="importForm" onsubmit="importProxies(event)">
-                    <div class="form-group">
-                        <label class="form-label" data-i18n="admin.proxy_list">Proxy List</label>
-                        <textarea class="form-textarea" id="importContent" rows="10" required
-                            placeholder="# Paste proxies here, one per line&#10;# Supported formats:&#10;# 192.168.1.1:8080&#10;# socks5://10.0.0.1:1080&#10;# 10.0.0.2:1080:socks4&#10;#&#10;# Lines starting with # or // are ignored"></textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.protocol_override">Protocol Override</label>
-                            <select class="form-select" id="importProtocol">
-                                <option value="auto" data-i18n="admin.auto_detect">Auto Detect</option>
-                                <option value="http">HTTP</option>
-                                <option value="https">HTTPS</option>
-                                <option value="socks4">SOCKS4</option>
-                                <option value="socks5">SOCKS5</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="display:flex;align-items:flex-end;gap:12px;padding-bottom:2px;">
-                            <button type="submit" class="btn btn-primary" id="importBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                                </svg>
-                                <span data-i18n="admin.btn_import">Import Proxies</span>
-                            </button>
-                            <button type="button" class="btn btn-outline" onclick="document.getElementById('importContent').value=''" data-i18n="common.clear">Clear</button>
-                        </div>
-                    </div>
-                </form>
-                <div id="importResult" style="display:none; margin-top:16px;"></div>
-            </div>
-        </div>
-
         <!-- ═══ Tab: User Management ═══ -->
         <div class="tab-panel" id="panel-users">
-            <!-- Create User -->
-            <div class="admin-section">
-                <div class="admin-section-header">
-                    <div class="admin-section-title">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
-                        </svg>
-                        <span data-i18n="admin.create_user">Create User</span>
-                    </div>
-                </div>
-                <form id="createUserForm" onsubmit="createUser(event)" style="max-width:640px;">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.username">Username</label>
-                            <input type="text" class="form-input" id="newUsername" required minlength="3" autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.password">Password</label>
-                            <input type="password" class="form-input" id="newUserPassword" required minlength="6" autocomplete="new-password">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" data-i18n="admin.role">Role</label>
-                            <select class="form-select" id="newUserRole">
-                                <option value="user" data-i18n="admin.role_user">User</option>
-                                <option value="admin" data-i18n="admin.role_admin">Admin</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px;">
-                            <button type="submit" class="btn btn-primary" id="createUserBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                                    <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
-                                </svg>
-                                <span data-i18n="admin.btn_create_user">Create User</span>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
             <!-- User List -->
             <div class="admin-section">
                 <div class="admin-section-header">
@@ -846,12 +746,20 @@
                         </svg>
                         <span data-i18n="admin.user_list">Users</span>
                     </div>
-                    <button class="btn btn-outline btn-sm" onclick="loadUsers()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
-                        </svg>
-                        <span data-i18n="common.refresh">Refresh</span>
-                    </button>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+                            </svg>
+                            <span data-i18n="admin.btn_create_user">Create User</span>
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="loadUsers()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                            </svg>
+                            <span data-i18n="common.refresh">Refresh</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table class="data-table">
@@ -872,6 +780,214 @@
             </div>
         </div>
     </main>
+
+    <!-- ═══ Import Modal ═══ -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--accent-cyan);">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span data-i18n="admin.tab_import">Bulk Import</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('importModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:16px;" data-i18n="admin.import_desc">
+                Paste a list of proxies below to import them immediately into the pool.
+            </p>
+            <form id="importForm" onsubmit="importProxies(event)">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.proxy_list">Proxy List</label>
+                    <textarea class="form-textarea" id="importContent" rows="8" required
+                        placeholder="# One proxy per line&#10;192.168.1.1:8080&#10;socks5://10.0.0.1:1080"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.protocol_override">Protocol Override</label>
+                    <select class="form-select" id="importProtocol">
+                        <option value="auto" data-i18n="admin.auto_detect">Auto Detect</option>
+                        <option value="http">HTTP</option>
+                        <option value="https">HTTPS</option>
+                        <option value="socks4">SOCKS4</option>
+                        <option value="socks5">SOCKS5</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('importModal')" data-i18n="common.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="importBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span data-i18n="admin.btn_import">Import Proxies</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ Add Source Modal ═══ -->
+    <div class="modal-overlay" id="addSourceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--accent-cyan);">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    <span data-i18n="admin.btn_add_source">Add Source</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('addSourceModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <form id="addSourceForm" onsubmit="addSource(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.source_name">Source Name</label>
+                        <input type="text" class="form-input" id="sourceName" data-i18n-placeholder="admin.source_name_placeholder" placeholder="e.g. Free Proxy List #1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.source_type">Source Type</label>
+                        <select class="form-select" id="sourceType" onchange="toggleSourceFields()">
+                            <option value="url" data-i18n="admin.type_url">URL Subscription</option>
+                            <option value="text" data-i18n="admin.type_text">Text / Paste List</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" id="sourceUrlGroup">
+                    <label class="form-label" data-i18n="admin.subscription_url">Subscription URL</label>
+                    <input type="url" class="form-input" id="sourceUrl" data-i18n-placeholder="admin.subscription_url_placeholder" placeholder="https://example.com/proxy-list.txt">
+                    <p class="form-hint" data-i18n="admin.url_hint">TXT subscription link returning one proxy per line</p>
+                </div>
+                <div class="form-group" id="sourceContentGroup" style="display:none;">
+                    <label class="form-label" data-i18n="admin.proxy_list_content">Proxy List Content</label>
+                    <textarea class="form-textarea" id="sourceContent" placeholder="192.168.1.1:8080&#10;socks5://10.0.0.1:1080"></textarea>
+                    <p class="form-hint" data-i18n="admin.content_hint">One proxy per line</p>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.protocol_override">Protocol Override</label>
+                        <select class="form-select" id="sourceProtocol">
+                            <option value="auto" data-i18n="admin.auto_detect">Auto Detect</option>
+                            <option value="http">HTTP</option>
+                            <option value="https">HTTPS</option>
+                            <option value="socks4">SOCKS4</option>
+                            <option value="socks5">SOCKS5</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.sync_interval">Auto Sync Interval</label>
+                        <select class="form-select" id="sourceSyncInterval">
+                            <option value="300">5 min</option>
+                            <option value="600">10 min</option>
+                            <option value="1800">30 min</option>
+                            <option value="3600">1 h</option>
+                            <option value="10800">3 h</option>
+                            <option value="21600" selected>6 h</option>
+                            <option value="86400">24 h</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addSourceModal')" data-i18n="common.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span data-i18n="admin.btn_add_source">Add Source</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ Create User Modal ═══ -->
+    <div class="modal-overlay" id="createUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--accent-cyan);">
+                        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                    <span data-i18n="admin.btn_create_user">Create User</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('createUserModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <form id="createUserForm" onsubmit="createUser(event)">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.username">Username</label>
+                    <input type="text" class="form-input" id="newUsername" required minlength="3" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.password">Password</label>
+                    <input type="password" class="form-input" id="newUserPassword" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.role">Role</label>
+                    <select class="form-select" id="newUserRole">
+                        <option value="user" data-i18n="admin.role_user">User</option>
+                        <option value="admin" data-i18n="admin.role_admin">Admin</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('createUserModal')" data-i18n="common.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="createUserBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+                        </svg>
+                        <span data-i18n="admin.btn_create_user">Create User</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ Edit User Modal ═══ -->
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--accent-cyan);">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    <span data-i18n="admin.edit_user">Edit User</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('editUserModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <form id="editUserForm" onsubmit="updateUser(event)">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.username">Username</label>
+                    <input type="text" class="form-input" id="editUsername" disabled style="opacity:0.6;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="admin.role">Role</label>
+                    <select class="form-select" id="editUserRole">
+                        <option value="user" data-i18n="admin.role_user">User</option>
+                        <option value="admin" data-i18n="admin.role_admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password <span style="color:var(--text-dim);font-weight:400;">(leave blank to keep current)</span></label>
+                    <input type="password" class="form-input" id="editUserPassword" minlength="6" autocomplete="new-password" placeholder="••••••">
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editUserModal')" data-i18n="common.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="editUserBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        <span data-i18n="common.save">Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
     // ═══════════════════════════════════════════════
@@ -1031,6 +1147,31 @@
         container.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(40px)'; }, 3000);
         setTimeout(() => container.removeChild(toast), 3500);
+    }
+
+    // ─── Modal Helpers ───
+    function openModal(id) {
+        document.getElementById(id).classList.add('open');
+        I18N.applyAll();
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('open');
+    }
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('open');
+        });
+    });
+    function openImportModal() { openModal('importModal'); }
+    function openAddSourceModal() { openModal('addSourceModal'); }
+    function openCreateUserModal() { openModal('createUserModal'); }
+    function openEditUserModal(id, username, role) {
+        document.getElementById('editUserId').value = id;
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editUserRole').value = role;
+        document.getElementById('editUserPassword').value = '';
+        openModal('editUserModal');
     }
 
     // ─── Source Form: Toggle URL vs Text fields ───
@@ -1244,6 +1385,7 @@
                 showToast(`${I18N.t('admin.toast_source_added')} — ${json.data.synced} proxies`, 'success');
                 document.getElementById('addSourceForm').reset();
                 toggleSourceFields();
+                closeModal('addSourceModal');
                 loadSources();
             } else {
                 showToast('Failed: ' + json.error, 'error');
@@ -1314,7 +1456,6 @@
         if (demoGuard()) return;
         const content = document.getElementById('importContent').value.trim();
         const protocol = document.getElementById('importProtocol').value;
-        const resultDiv = document.getElementById('importResult');
 
         if (!content) {
             showToast('Please paste some proxies first', 'error');
@@ -1334,19 +1475,11 @@
             const json = await resp.json();
             if (json.success) {
                 showToast(`${json.data.imported} ${I18N.t('admin.toast_imported')}`, 'success');
-                resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `
-                    <div style="padding:16px;background:rgba(0,230,138,0.08);border:1px solid rgba(0,230,138,0.2);border-radius:10px;color:var(--accent-green);display:flex;align-items:center;gap:10px;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;flex-shrink:0;">
-                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <strong>${json.data.imported} proxies</strong> imported successfully. They will be checked in the next cycle.
-                    </div>
-                `;
+                closeModal('importModal');
+                document.getElementById('importContent').value = '';
+                loadProxies();
             } else {
                 showToast('Import failed: ' + json.error, 'error');
-                resultDiv.style.display = 'block';
-                resultDiv.innerHTML = `<div style="padding:16px;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.2);border-radius:10px;color:var(--accent-red);">Error: ${escHtml(json.error)}</div>`;
             }
         } catch(e) {
             showToast('Error: ' + e.message, 'error');
@@ -1401,6 +1534,10 @@
                     <td style="font-size:0.78rem;color:var(--text-dim)">${u.created_at || '—'}</td>
                     <td>
                         <div class="row-actions">
+                            <button class="btn btn-outline btn-sm" onclick="openEditUserModal(${u.id}, '${escHtml(u.username)}', '${escHtml(u.role)}')" style="padding:4px 10px;font-size:0.75rem;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                ${I18N.t('common.edit') || 'Edit'}
+                            </button>
                             <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')" style="padding:4px 10px;font-size:0.75rem;">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                                 ${I18N.t('common.delete') || 'Delete'}
@@ -1433,6 +1570,7 @@
             if (json.success) {
                 showToast(I18N.t('admin.user_created') || 'User created', 'success');
                 document.getElementById('createUserForm').reset();
+                closeModal('createUserModal');
                 loadUsers();
             } else {
                 showToast(json.error || 'Failed to create user', 'error');
@@ -1458,6 +1596,39 @@
             }
         } catch(e) {
             showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function updateUser(e) {
+        e.preventDefault();
+        if (demoGuard()) return;
+        const id = document.getElementById('editUserId').value;
+        const role = document.getElementById('editUserRole').value;
+        const password = document.getElementById('editUserPassword').value;
+
+        const body = { role };
+        if (password) body.password = password;
+
+        const btn = document.getElementById('editUserBtn');
+        btn.disabled = true;
+        try {
+            const resp = await authFetch(`/api/v1/admin/users/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(I18N.t('admin.user_updated') || 'User updated', 'success');
+                closeModal('editUserModal');
+                loadUsers();
+            } else {
+                showToast(json.error || 'Failed to update user', 'error');
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
         }
     }
     </script>

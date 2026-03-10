@@ -147,6 +147,12 @@ pub struct CreateUserRequest {
     pub role: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    pub role: Option<String>,
+    pub password: Option<String>,
+}
+
 pub async fn list_users(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<AuthResponse>)> {
@@ -285,4 +291,57 @@ pub async fn delete_user_handler(
     Ok(Json(
         serde_json::json!({ "success": true, "deleted": deleted }),
     ))
+}
+
+pub async fn update_user_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+    Json(body): Json<UpdateUserRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<AuthResponse>)> {
+    let err = |msg: &str| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(AuthResponse {
+                success: false,
+                token: None,
+                error: Some(msg.to_string()),
+            }),
+        )
+    };
+
+    if let Some(ref role) = body.role {
+        let valid_roles = ["admin", "user"];
+        if !valid_roles.contains(&role.as_str()) {
+            return Err(err("Role must be 'admin' or 'user'"));
+        }
+        // Prevent demoting the last admin
+        if role == "user" {
+            let current_role = state.db.get_user_role(id).await
+                .map_err(|_| err("User not found"))?
+                .ok_or_else(|| err("User not found"))?;
+            if current_role == "admin" {
+                let admin_count = state.db.count_admins().await.map_err(|_| err("Database error"))?;
+                if admin_count <= 1 {
+                    return Err(err("Cannot demote the last admin user"));
+                }
+            }
+        }
+    }
+
+    let password_hash = if let Some(ref pw) = body.password {
+        if pw.len() < 6 {
+            return Err(err("Password must be at least 6 characters"));
+        }
+        Some(bcrypt::hash(pw, bcrypt::DEFAULT_COST).map_err(|_| err("Failed to hash password"))?)
+    } else {
+        None
+    };
+
+    state
+        .db
+        .update_user(id, body.role.as_deref(), password_hash.as_deref())
+        .await
+        .map_err(|_| err("Failed to update user"))?;
+
+    Ok(Json(serde_json::json!({ "success": true })))
 }

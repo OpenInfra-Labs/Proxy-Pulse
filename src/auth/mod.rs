@@ -11,7 +11,7 @@ pub use middleware::{
 };
 pub use users::{
     create_user_handler, delete_user_handler, get_me, get_preferences, list_users,
-    save_preferences,
+    save_preferences, update_user_handler,
 };
 
 use axum::extract::Request;

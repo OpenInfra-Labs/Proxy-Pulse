@@ -129,6 +129,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/admin/users", axum::routing::get(auth::list_users))
         .route("/api/v1/admin/users", axum::routing::post(auth::create_user_handler))
         .route("/api/v1/admin/users/:id", axum::routing::delete(auth::delete_user_handler))
+        .route("/api/v1/admin/users/:id", axum::routing::put(auth::update_user_handler))
         .layer(middleware::from_fn_with_state(state.clone(), auth::admin_auth_middleware));
 
     let app = Router::new()

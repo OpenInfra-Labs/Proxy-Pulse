@@ -49,6 +49,24 @@ impl Database {
         Ok(())
     }
 
+    pub async fn update_user(&self, user_id: i64, role: Option<&str>, password_hash: Option<&str>) -> Result<bool> {
+        if let Some(r) = role {
+            sqlx::query("UPDATE users SET role = ? WHERE id = ?")
+                .bind(r)
+                .bind(user_id)
+                .execute(&self.pool)
+                .await?;
+        }
+        if let Some(ph) = password_hash {
+            sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
+                .bind(ph)
+                .bind(user_id)
+                .execute(&self.pool)
+                .await?;
+        }
+        Ok(true)
+    }
+
     pub async fn get_user_password_hash(&self, user_id: i64) -> Result<Option<String>> {
         let row = sqlx::query_as::<_, (String,)>(
             "SELECT password_hash FROM users WHERE id = ?",
