@@ -7,7 +7,7 @@ use tracing::{error, info, warn};
 use crate::db::Database;
 
 const REPO: &str = "OpenInfra-Labs/Proxy-Pulse";
-const CHECK_INTERVAL_SECS: u64 = 3600; // Check every hour
+const CHECK_INTERVAL_SECS: u64 = 30; // Check every 30 seconds
 const CACHE_TTL_SECS: u64 = 14400; // Cache for 4 hours
 
 #[derive(Clone)]
