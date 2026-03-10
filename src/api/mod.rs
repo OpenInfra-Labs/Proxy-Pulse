@@ -14,6 +14,7 @@ use crate::db::Database;
 pub struct AppState {
     pub db: Database,
     pub demo_mode: bool,
+    pub db_path: String,
 }
 
 #[derive(Debug, Serialize)]

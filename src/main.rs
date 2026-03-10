@@ -93,7 +93,14 @@ async fn main() -> anyhow::Result<()> {
     info!("Database initialized");
 
     // Create shared state
-    let state = Arc::new(AppState { db: db.clone(), demo_mode });
+    let db_path = db_url
+        .strip_prefix("sqlite://")
+        .unwrap_or(&db_url)
+        .split('?')
+        .next()
+        .unwrap_or("proxy_pulse.db")
+        .to_string();
+    let state = Arc::new(AppState { db: db.clone(), demo_mode, db_path });
 
     // Start background schedulers
     scheduler::start_schedulers(db.clone()).await;

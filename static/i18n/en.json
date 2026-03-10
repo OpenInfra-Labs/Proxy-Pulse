@@ -223,7 +223,14 @@
         "default_timezone_hint": "Default timezone for newly created users",
         "default_theme": "Default Theme",
         "default_theme_hint": "Default theme for newly created users",
-        "system_saved": "System settings saved"
+        "system_saved": "System settings saved",
+        "database_management": "Database Management",
+        "export_db": "Export Database",
+        "db_export_hint": "Export the current database as a SQLite file for backup",
+        "import_db": "Import Database",
+        "db_import_hint": "Import a SQLite database file to replace the current data. The service will need to be restarted after import.",
+        "confirm_import_db": "Are you sure? This will replace the current database and the service will need to be restarted.",
+        "db_imported": "Database imported. Please restart the service."
     },
     "lang": {
         "en": "English",

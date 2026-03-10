@@ -911,8 +911,54 @@
                     </div>
                 </form>
             </div>
+
+            <!-- Database Management -->
+            <div class="admin-section">
+                <div class="admin-section-header">
+                    <div class="admin-section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        </svg>
+                        <span data-i18n="admin.database_management">Database Management</span>
+                    </div>
+                </div>
+                <div style="max-width:600px;">
+                    <div class="form-group">
+                        <div class="form-hint" data-i18n="admin.db_export_hint">Export the current database as a SQLite file for backup</div>
+                        <div style="display:flex;gap:10px;margin-top:10px;">
+                            <button type="button" class="btn btn-primary" onclick="exportDatabase()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                <span data-i18n="admin.export_db">Export Database</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:20px;">
+                        <div class="form-hint" data-i18n="admin.db_import_hint">Import a SQLite database file to replace the current data. The service will need to be restarted after import.</div>
+                        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+                            <input type="file" id="dbImportFile" accept=".db,.sqlite,.sqlite3" style="display:none;" onchange="importDatabase()">
+                            <button type="button" class="btn btn-danger" onclick="document.getElementById('dbImportFile').click()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                <span data-i18n="admin.import_db">Import Database</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span id="adminFooterVersion">Proxy Pulse</span>
+        <span class="footer-divider">|</span>
+        <span>© 2026 <a href="https://github.com/OpenInfra-Labs" target="_blank" rel="noopener" style="color:var(--accent-cyan);text-decoration:none;">OpenInfra-Labs</a></span>
+        <span class="footer-divider">|</span>
+        <a href="https://github.com/OpenInfra-Labs/Proxy-Pulse" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;color:var(--text-dim);text-decoration:none;transition:color 0.3s;" onmouseover="this.style.color='var(--accent-cyan)'" onmouseout="this.style.color='var(--text-dim)'"><svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+    </footer>
 
     <!-- ═══ Import Modal ═══ -->
     <div class="modal-overlay" id="importModal">
@@ -1912,6 +1958,47 @@
             btn.disabled = false;
         }
     }
+
+    // ─── Database Export/Import ───
+    function exportDatabase() {
+        if (demoGuard()) return;
+        window.location.href = '/api/v1/admin/db/export';
+    }
+
+    async function importDatabase() {
+        if (demoGuard()) return;
+        const input = document.getElementById('dbImportFile');
+        const file = input.files[0];
+        if (!file) return;
+        const confirmMsg = I18N.t('admin.confirm_import_db') || 'Are you sure? This will replace the current database and the service will need to be restarted.';
+        if (!confirm(confirmMsg)) { input.value = ''; return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const resp = await authFetch('/api/v1/admin/db/import', {
+                method: 'POST',
+                body: formData,
+            });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(I18N.t('admin.db_imported') || 'Database imported. Please restart the service.', 'success');
+            } else {
+                showToast(json.error || 'Import failed', 'error');
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            input.value = '';
+        }
+    }
+
+    // ─── Fetch Version ───
+    fetch('/api/v1/health').then(r => r.json()).then(d => {
+        if (d.success && d.data && d.data.version) {
+            const el = document.getElementById('adminFooterVersion');
+            if (el) el.textContent = 'Proxy Pulse v' + d.data.version;
+        }
+    }).catch(() => {});
     </script>
 </body>
 </html>

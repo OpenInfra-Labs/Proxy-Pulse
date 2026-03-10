@@ -223,7 +223,14 @@
         "default_timezone_hint": "新規作成ユーザーのデフォルトタイムゾーン",
         "default_theme": "デフォルトテーマ",
         "default_theme_hint": "新規作成ユーザーのデフォルトテーマ",
-        "system_saved": "システム設定が保存されました"
+        "system_saved": "システム設定を保存しました",
+        "database_management": "データベース管理",
+        "export_db": "データベースをエクスポート",
+        "db_export_hint": "現在のデータベースをSQLiteファイルとしてバックアップ用にエクスポートします",
+        "import_db": "データベースをインポート",
+        "db_import_hint": "SQLiteデータベースファイルをインポートして現在のデータを置き換えます。インポート後にサービスの再起動が必要です。",
+        "confirm_import_db": "本当にインポートしますか？現在のデータベースが置き換えられ、サービスの再起動が必要になります。",
+        "db_imported": "データベースをインポートしました。サービスを再起動してください。"
     },
     "lang": {
         "en": "English",

@@ -1,7 +1,8 @@
 use axum::{
-    extract::{Path, Query, State},
+    body::Body,
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
-    response::Json,
+    response::{Json, Response},
     routing::{get, post},
     Router,
 };
@@ -95,6 +96,8 @@ pub fn admin_api_router() -> Router<Arc<AppState>> {
         .route("/api/v1/admin/settings/checker", post(admin_save_checker_settings))
         .route("/api/v1/admin/settings/system", get(admin_get_system_settings))
         .route("/api/v1/admin/settings/system", post(admin_save_system_settings))
+        .route("/api/v1/admin/db/export", get(admin_export_db))
+        .route("/api/v1/admin/db/import", post(admin_import_db))
 }
 
 async fn admin_get_proxies(
@@ -498,4 +501,87 @@ async fn admin_save_system_settings(
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
+}
+
+async fn admin_export_db(
+    State(state): State<Arc<AppState>>,
+) -> Result<Response<Body>, (StatusCode, Json<ErrorResponse>)> {
+    // Checkpoint WAL to ensure the main DB file is up-to-date
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(&state.db.pool)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+            success: false, error: e.to_string(),
+        })))?;
+
+    let data = tokio::fs::read(&state.db_path).await.map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+            success: false, error: format!("Failed to read database file: {}", e),
+        }))
+    })?;
+
+    Ok(Response::builder()
+        .status(200)
+        .header("Content-Type", "application/x-sqlite3")
+        .header("Content-Disposition", "attachment; filename=\"proxy_pulse.db\"")
+        .body(Body::from(data))
+        .unwrap())
+}
+
+async fn admin_import_db(
+    State(state): State<Arc<AppState>>,
+    mut multipart: Multipart,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
+
+    let field = multipart.next_field().await.map_err(|e| {
+        (StatusCode::BAD_REQUEST, Json(ErrorResponse {
+            success: false, error: format!("Invalid upload: {}", e),
+        }))
+    })?.ok_or_else(|| {
+        (StatusCode::BAD_REQUEST, Json(ErrorResponse {
+            success: false, error: "No file uploaded".to_string(),
+        }))
+    })?;
+
+    let data = field.bytes().await.map_err(|e| {
+        (StatusCode::BAD_REQUEST, Json(ErrorResponse {
+            success: false, error: format!("Failed to read upload: {}", e),
+        }))
+    })?;
+
+    // Validate it's a SQLite file (magic header)
+    if data.len() < 16 || &data[..16] != b"SQLite format 3\0" {
+        return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse {
+            success: false,
+            error: "Invalid SQLite database file".to_string(),
+        })));
+    }
+
+    // Write to a temporary file next to the DB, then rename atomically
+    let import_path = format!("{}.import", state.db_path);
+    tokio::fs::write(&import_path, &data).await.map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+            success: false, error: format!("Failed to write file: {}", e),
+        }))
+    })?;
+
+    // Close all pool connections
+    state.db.pool.close().await;
+
+    // Replace the database file
+    if let Err(e) = tokio::fs::rename(&import_path, &state.db_path).await {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+            success: false, error: format!("Failed to replace database: {}", e),
+        })));
+    }
+
+    // Remove WAL and SHM files if they exist
+    let _ = tokio::fs::remove_file(format!("{}-wal", state.db_path)).await;
+    let _ = tokio::fs::remove_file(format!("{}-shm", state.db_path)).await;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "data": { "message": "Database imported. Please restart the service." }
+    })))
 }
