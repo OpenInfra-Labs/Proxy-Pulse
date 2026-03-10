@@ -582,6 +582,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                         <span data-i18n="common.personal_settings">Personal Settings</span>
                     </a>
+                    <a href="/admin" class="avatar-dropdown-item" style="color:var(--accent-cyan);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span data-i18n="common.system_settings">System Settings</span>
+                    </a>
                     <div class="avatar-dropdown-divider"></div>
                     <button class="avatar-dropdown-item logout-item" onclick="logout()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -1099,11 +1103,17 @@
             const resp = await authFetch('/api/v1/auth/preferences');
             const json = await resp.json();
             if (json.success) {
-                localStorage.setItem('pp_theme', json.theme);
-                localStorage.setItem('pp-lang', json.language);
-                applyTheme(json.theme === 'system' ? getSystemTheme() : json.theme);
-                if (I18N.locale !== json.language) {
-                    await I18N.setLocale(json.language);
+                const cachedTheme = localStorage.getItem('pp_theme');
+                const cachedLang = localStorage.getItem('pp-lang');
+                if (json.theme !== cachedTheme) {
+                    localStorage.setItem('pp_theme', json.theme);
+                    applyTheme(json.theme === 'system' ? getSystemTheme() : json.theme);
+                }
+                if (json.language !== cachedLang) {
+                    localStorage.setItem('pp-lang', json.language);
+                    if (I18N.locale !== json.language) {
+                        await I18N.setLocale(json.language);
+                    }
                 }
             }
         } catch(e) { /* ignore */ }

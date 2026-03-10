@@ -8,6 +8,9 @@
         "refresh": "Refresh",
         "actions": "Actions",
         "delete": "Delete",
+        "edit": "Edit",
+        "save": "Save",
+        "cancel": "Cancel",
         "clear": "Clear",
         "enabled": "Enabled",
         "disabled": "Disabled",
@@ -192,7 +195,9 @@
         "no_users": "No users",
         "user_created": "User created",
         "user_deleted": "User deleted",
-        "confirm_delete_user": "Delete user"
+        "confirm_delete_user": "Delete user",
+        "edit_user": "Edit User",
+        "user_updated": "User updated"
     },
     "lang": {
         "en": "English",

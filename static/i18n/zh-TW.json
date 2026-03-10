@@ -8,6 +8,9 @@
         "refresh": "重新整理",
         "actions": "操作",
         "delete": "刪除",
+        "edit": "編輯",
+        "save": "儲存",
+        "cancel": "取消",
         "clear": "清空",
         "enabled": "已啟用",
         "disabled": "已停用",
@@ -191,7 +194,9 @@
         "no_users": "暫無使用者",
         "user_created": "使用者已建立",
         "user_deleted": "使用者已刪除",
-        "confirm_delete_user": "刪除使用者"
+        "confirm_delete_user": "刪除使用者",
+        "edit_user": "編輯用戶",
+        "user_updated": "用戶已更新"
     },
     "lang": {
         "en": "English",

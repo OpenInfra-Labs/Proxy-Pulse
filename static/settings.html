@@ -242,7 +242,7 @@
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <div class="logo">
+            <a href="/" class="logo" style="text-decoration:none;color:inherit;">
                 <div class="logo-icon">
                     <svg viewBox="0 0 32 32" fill="none">
                         <circle cx="16" cy="16" r="14" stroke="url(#grad1)" stroke-width="2"/>
@@ -260,13 +260,9 @@
                     <h1>Proxy Pulse</h1>
                     <span class="logo-subtitle" data-i18n="settings.subtitle">Personal Settings</span>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="header-right">
-            <div class="nav-links">
-                <a href="/" class="nav-link" data-i18n="common.dashboard">Dashboard</a>
-                <a href="/admin" class="nav-link" id="adminNavLink" style="display:none;" data-i18n="common.admin">Admin</a>
-            </div>
             <div class="status-pill" id="systemStatus">
                 <span class="status-dot"></span>
                 <span class="status-text" data-i18n="common.system_online">System Online</span>
@@ -532,8 +528,6 @@
                 roleEl.textContent = json.role === 'admin' ? 'Admin' : 'User';
                 if (json.role !== 'admin') roleEl.classList.add('role-user');
                 if (json.role === 'admin') {
-                    const adminNav = document.getElementById('adminNavLink');
-                    if (adminNav) adminNav.style.display = '';
                     const sysLink = document.getElementById('sysSettingsLink');
                     if (sysLink) sysLink.style.display = '';
                 }
@@ -562,12 +556,18 @@
                 // Set theme buttons
                 currentTheme = json.theme;
                 selectTheme(json.theme);
-                // Sync localStorage
-                localStorage.setItem('pp_theme', json.theme);
-                localStorage.setItem('pp-lang', json.language);
-                applyTheme(json.theme === 'system' ? getSystemTheme() : json.theme);
-                if (I18N.locale !== json.language) {
-                    await I18N.setLocale(json.language);
+                // Only update localStorage if changed
+                const cachedTheme = localStorage.getItem('pp_theme');
+                const cachedLang = localStorage.getItem('pp-lang');
+                if (json.theme !== cachedTheme) {
+                    localStorage.setItem('pp_theme', json.theme);
+                    applyTheme(json.theme === 'system' ? getSystemTheme() : json.theme);
+                }
+                if (json.language !== cachedLang) {
+                    localStorage.setItem('pp-lang', json.language);
+                    if (I18N.locale !== json.language) {
+                        await I18N.setLocale(json.language);
+                    }
                 }
             }
         } catch(e) { /* ignore */ }

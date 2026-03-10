@@ -8,6 +8,9 @@
         "refresh": "更新",
         "actions": "操作",
         "delete": "削除",
+        "edit": "編集",
+        "save": "保存",
+        "cancel": "キャンセル",
         "clear": "クリア",
         "enabled": "有効",
         "disabled": "無効",
@@ -192,7 +195,9 @@
         "no_users": "ユーザーがいません",
         "user_created": "ユーザーが作成されました",
         "user_deleted": "ユーザーが削除されました",
-        "confirm_delete_user": "ユーザーを削除"
+        "confirm_delete_user": "ユーザーを削除",
+        "edit_user": "ユーザー編集",
+        "user_updated": "ユーザーが更新されました"
     },
     "lang": {
         "en": "English",
