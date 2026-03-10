@@ -116,8 +116,7 @@ async fn check_single_proxy(
     // Build the reqwest::Client ONCE per proxy, reuse across all targets
     let proxy_url = match proxy.protocol.as_str() {
         "socks5" => format!("socks5://{}", proxy_addr),
-        "socks4" => format!("socks5://{}", proxy_addr),
-        "https" => format!("https://{}", proxy_addr),
+        "socks4" => format!("socks4://{}", proxy_addr),
         _ => format!("http://{}", proxy_addr),
     };
     let req_proxy = reqwest::Proxy::all(&proxy_url)?;
