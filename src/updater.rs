@@ -80,42 +80,58 @@ pub async fn check_and_update() -> anyhow::Result<bool> {
 }
 
 /// Fetch the latest release tag from GitHub API
+/// Falls back to tags API if no releases exist
 pub async fn fetch_latest_version() -> anyhow::Result<String> {
+    let client = reqwest::Client::builder()
+        .user_agent("Proxy-Pulse-Updater")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()?;
+
+    // Try releases/latest first
     let url = format!(
         "https://api.github.com/repos/{}/releases/latest",
         REPO
     );
+    let resp = client.get(&url).send().await?;
+    if resp.status().is_success() {
+        let json: serde_json::Value = resp.json().await?;
+        if let Some(tag) = json.get("tag_name").and_then(|v| v.as_str()) {
+            return Ok(tag.to_string());
+        }
+    }
 
+    // Fallback: fetch latest tag
+    let url = format!(
+        "https://api.github.com/repos/{}/tags?per_page=1",
+        REPO
+    );
+    let resp = client.get(&url).send().await?;
+    let json: serde_json::Value = resp.json().await?;
+    json.as_array()
+        .and_then(|arr| arr.first())
+        .and_then(|t| t.get("name"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| anyhow::anyhow!("No releases or tags found"))
+}
+
+/// Fetch all releases from GitHub API (tag, date, body)
+/// Falls back to tags API if no releases exist
+pub async fn fetch_releases() -> anyhow::Result<Vec<serde_json::Value>> {
     let client = reqwest::Client::builder()
         .user_agent("Proxy-Pulse-Updater")
         .timeout(std::time::Duration::from_secs(15))
         .build()?;
 
-    let resp = client.get(&url).send().await?;
-    let json: serde_json::Value = resp.json().await?;
-
-    json.get("tag_name")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| anyhow::anyhow!("No tag_name in GitHub response"))
-}
-
-/// Fetch all releases from GitHub API (tag, date, body)
-pub async fn fetch_releases() -> anyhow::Result<Vec<serde_json::Value>> {
+    // Try releases first
     let url = format!(
         "https://api.github.com/repos/{}/releases?per_page=50",
         REPO
     );
-
-    let client = reqwest::Client::builder()
-        .user_agent("Proxy-Pulse-Updater")
-        .timeout(std::time::Duration::from_secs(15))
-        .build()?;
-
     let resp = client.get(&url).send().await?;
     let releases: Vec<serde_json::Value> = resp.json().await?;
 
-    Ok(releases
+    let results: Vec<serde_json::Value> = releases
         .into_iter()
         .filter_map(|r| {
             let tag = r.get("tag_name")?.as_str()?.to_string();
@@ -125,6 +141,30 @@ pub async fn fetch_releases() -> anyhow::Result<Vec<serde_json::Value>> {
                 "version": tag,
                 "date": date,
                 "notes": body,
+            }))
+        })
+        .collect();
+
+    if !results.is_empty() {
+        return Ok(results);
+    }
+
+    // Fallback: fetch tags
+    let url = format!(
+        "https://api.github.com/repos/{}/tags?per_page=50",
+        REPO
+    );
+    let resp = client.get(&url).send().await?;
+    let tags: Vec<serde_json::Value> = resp.json().await?;
+
+    Ok(tags
+        .into_iter()
+        .filter_map(|t| {
+            let name = t.get("name")?.as_str()?.to_string();
+            Some(serde_json::json!({
+                "version": name,
+                "date": "",
+                "notes": "",
             }))
         })
         .collect())
