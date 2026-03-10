@@ -3,7 +3,7 @@ FROM rust:1.86-slim AS builder
 WORKDIR /app
 COPY . .
 
-RUN apt-get update && apt-get install -y pkg-config && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y pkg-config build-essential && rm -rf /var/lib/apt/lists/*
 RUN cargo build --release --bin proxy-pulse
 
 FROM debian:bookworm-slim
