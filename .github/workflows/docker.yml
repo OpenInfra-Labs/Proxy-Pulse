@@ -1,9 +1,9 @@
 name: Docker Build & Push
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["Build & Release"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -11,8 +11,33 @@ permissions:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v') }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: meta
+        run: |
+          TAG="${{ github.event.workflow_run.head_branch }}"
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Download Linux binaries from release
+        run: |
+          mkdir -p bin
+          TAG="${{ steps.meta.outputs.tag }}"
+          for arch in amd64 arm64; do
+            ASSET="proxy-pulse-linux-${arch}.tar.gz"
+            URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${ASSET}"
+            echo "Downloading ${URL}..."
+            curl -fsSL -o "${ASSET}" "${URL}"
+            tar xzf "${ASSET}"
+            mv "proxy-pulse-linux-${arch}" "bin/proxy-pulse-${arch}"
+            rm "${ASSET}"
+          done
+          # Map Docker TARGETARCH names
+          ls -la bin/
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -26,12 +51,6 @@ jobs:
           username: openinfralabs
           password: ${{ secrets.DOCKERHUBTOKEN }}
 
-      - name: Extract version from tag
-        id: meta
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -41,5 +60,3 @@ jobs:
           tags: |
             openinfralabs/proxy-pulse:${{ steps.meta.outputs.version }}
             openinfralabs/proxy-pulse:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

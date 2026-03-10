@@ -1,18 +1,13 @@
-FROM rust:1.86-slim AS builder
-
-WORKDIR /app
-COPY . .
-
-RUN apt-get update && apt-get install -y pkg-config build-essential && rm -rf /var/lib/apt/lists/*
-RUN cargo build --release --bin proxy-pulse
-
 FROM debian:bookworm-slim
+
+ARG TARGETARCH
 
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /app/target/release/proxy-pulse .
+COPY bin/proxy-pulse-${TARGETARCH} ./proxy-pulse
 COPY config.example.yaml .
+RUN chmod +x ./proxy-pulse
 
 EXPOSE 8080
 
