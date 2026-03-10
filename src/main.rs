@@ -25,6 +25,7 @@ pub static malloc_conf: &[u8] = b"dirty_decay_ms:1000,muzzy_decay_ms:1000,narena
 
 use std::sync::Arc;
 
+use axum::extract::DefaultBodyLimit;
 use axum::{middleware, Router};
 use axum::http::{header, StatusCode};
 use axum::response::{Html, IntoResponse, Response};
@@ -125,7 +126,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/auth/status", axum::routing::get(auth::auth_status))
         .route("/api/v1/auth/setup", axum::routing::post(auth::setup))
         .route("/api/v1/auth/login", axum::routing::post(auth::login))
-        .route("/api/v1/auth/logout", axum::routing::post(auth::logout));
+        .route("/api/v1/auth/logout", axum::routing::post(auth::logout))
+        .route("/api/v1/health", axum::routing::get(api::health_check))
+        .route("/api/v1/demo-mode", axum::routing::get(api::get_demo_mode));
 
     // Proxy export routes — accept session token OR API key
     let proxy_api = api::proxy_api_router()
@@ -133,6 +136,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Admin/internal API routes — admin role only
     let admin_api = api::admin_api_router()
+        .layer(DefaultBodyLimit::max(512 * 1024 * 1024))
         .layer(middleware::from_fn_with_state(state.clone(), auth::admin_auth_middleware));
 
     // Auth-management routes (change password, API keys, preferences, me) — session token only

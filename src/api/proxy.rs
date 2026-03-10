@@ -46,8 +46,6 @@ pub fn proxy_api_router() -> Router<Arc<AppState>> {
         .route("/api/v1/proxy/csv", get(get_proxies_csv))
         .route("/api/v1/proxy/stats", get(get_stats))
         .route("/api/v1/proxy/countries", get(get_countries))
-        .route("/api/v1/health", get(health_check))
-        .route("/api/v1/demo-mode", get(get_demo_mode))
 }
 
 async fn get_random_proxy(
@@ -288,7 +286,7 @@ async fn get_countries(
     }
 }
 
-async fn health_check() -> Json<ApiResponse<serde_json::Value>> {
+pub async fn health_check() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse {
         success: true,
         data: serde_json::json!({
@@ -298,7 +296,7 @@ async fn health_check() -> Json<ApiResponse<serde_json::Value>> {
     })
 }
 
-async fn get_demo_mode(State(state): State<Arc<AppState>>) -> Json<ApiResponse<bool>> {
+pub async fn get_demo_mode(State(state): State<Arc<AppState>>) -> Json<ApiResponse<bool>> {
     Json(ApiResponse {
         success: true,
         data: state.demo_mode,
