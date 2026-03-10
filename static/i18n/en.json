@@ -212,7 +212,18 @@
         "checker_concurrent_hint": "Maximum number of simultaneous proxy checks (1–10000)",
         "checker_targets": "Check Targets",
         "checker_targets_hint": "URLs used to verify proxy connectivity (one per line)",
-        "checker_saved": "Checker settings saved"
+        "checker_saved": "Checker settings saved",
+        "tab_system": "System Settings",
+        "system_settings": "System Settings",
+        "auto_update": "Auto Update",
+        "auto_update_hint": "When enabled, the system periodically checks for new releases and updates automatically",
+        "default_language": "Default Language",
+        "default_language_hint": "Default language for newly created users",
+        "default_timezone": "Default Timezone",
+        "default_timezone_hint": "Default timezone for newly created users",
+        "default_theme": "Default Theme",
+        "default_theme_hint": "Default theme for newly created users",
+        "system_saved": "System settings saved"
     },
     "lang": {
         "en": "English",

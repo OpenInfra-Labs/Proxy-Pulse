@@ -212,7 +212,18 @@
         "checker_concurrent_hint": "同时进行代理检测的最大数量（1–10000）",
         "checker_targets": "检测目标",
         "checker_targets_hint": "用于验证代理连通性的 URL（每行一个）",
-        "checker_saved": "检测设置已保存"
+        "checker_saved": "检测设置已保存",
+        "tab_system": "系统设置",
+        "system_settings": "系统设置",
+        "auto_update": "自动更新",
+        "auto_update_hint": "启用后，系统将定期检查新版本并自动更新",
+        "default_language": "默认语言",
+        "default_language_hint": "新创建用户的默认语言",
+        "default_timezone": "默认时区",
+        "default_timezone_hint": "新创建用户的默认时区",
+        "default_theme": "默认主题",
+        "default_theme_hint": "新创建用户的默认主题",
+        "system_saved": "系统设置已保存"
     },
     "lang": {
         "en": "English",

@@ -93,6 +93,8 @@ pub fn admin_api_router() -> Router<Arc<AppState>> {
         .route("/api/v1/admin/source/sync", post(admin_sync_sources))
         .route("/api/v1/admin/settings/checker", get(admin_get_checker_settings))
         .route("/api/v1/admin/settings/checker", post(admin_save_checker_settings))
+        .route("/api/v1/admin/settings/system", get(admin_get_system_settings))
+        .route("/api/v1/admin/settings/system", post(admin_save_system_settings))
 }
 
 async fn admin_get_proxies(
@@ -412,6 +414,88 @@ async fn admin_save_checker_settings(
             error: e.to_string(),
         }))
     })?;
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SystemSettingsRequest {
+    pub auto_update: Option<bool>,
+    pub default_language: Option<String>,
+    pub default_timezone: Option<String>,
+    pub default_theme: Option<String>,
+}
+
+async fn admin_get_system_settings(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let auto_update = state.db.get_setting("system.auto_update").await
+        .ok().flatten().map(|v| v != "false").unwrap_or(true);
+    let default_language = state.db.get_setting("system.default_language").await
+        .ok().flatten().unwrap_or_else(|| "en".to_string());
+    let default_timezone = state.db.get_setting("system.default_timezone").await
+        .ok().flatten().unwrap_or_else(|| "auto".to_string());
+    let default_theme = state.db.get_setting("system.default_theme").await
+        .ok().flatten().unwrap_or_else(|| "system".to_string());
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "data": {
+            "auto_update": auto_update,
+            "default_language": default_language,
+            "default_timezone": default_timezone,
+            "default_theme": default_theme
+        }
+    })))
+}
+
+async fn admin_save_system_settings(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<SystemSettingsRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    demo_guard(&state)?;
+
+    if let Some(auto_update) = body.auto_update {
+        state.db.set_setting("system.auto_update", if auto_update { "true" } else { "false" }).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+                success: false, error: e.to_string(),
+            })))?;
+    }
+
+    if let Some(ref lang) = body.default_language {
+        let valid = ["en", "zh-CN", "zh-TW", "ja"];
+        if !valid.contains(&lang.as_str()) {
+            return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse {
+                success: false,
+                error: "Invalid language. Must be one of: en, zh-CN, zh-TW, ja".to_string(),
+            })));
+        }
+        state.db.set_setting("system.default_language", lang).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+                success: false, error: e.to_string(),
+            })))?;
+    }
+
+    if let Some(ref tz) = body.default_timezone {
+        state.db.set_setting("system.default_timezone", tz).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+                success: false, error: e.to_string(),
+            })))?;
+    }
+
+    if let Some(ref theme) = body.default_theme {
+        let valid = ["system", "light", "dark"];
+        if !valid.contains(&theme.as_str()) {
+            return Err((StatusCode::BAD_REQUEST, Json(ErrorResponse {
+                success: false,
+                error: "Invalid theme. Must be one of: system, light, dark".to_string(),
+            })));
+        }
+        state.db.set_setting("system.default_theme", theme).await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse {
+                success: false, error: e.to_string(),
+            })))?;
+    }
 
     Ok(Json(serde_json::json!({ "success": true })))
 }

@@ -211,7 +211,18 @@
         "checker_concurrent_hint": "同時進行代理檢測的最大數量（1–10000）",
         "checker_targets": "檢測目標",
         "checker_targets_hint": "用於驗證代理連通性的 URL（每行一個）",
-        "checker_saved": "檢測設定已儲存"
+        "checker_saved": "檢測設定已儲存",
+        "tab_system": "系統設定",
+        "system_settings": "系統設定",
+        "auto_update": "自動更新",
+        "auto_update_hint": "啟用後，系統將定期檢查新版本並自動更新",
+        "default_language": "預設語言",
+        "default_language_hint": "新建使用者的預設語言",
+        "default_timezone": "預設時區",
+        "default_timezone_hint": "新建使用者的預設時區",
+        "default_theme": "預設主題",
+        "default_theme_hint": "新建使用者的預設主題",
+        "system_saved": "系統設定已儲存"
     },
     "lang": {
         "en": "English",

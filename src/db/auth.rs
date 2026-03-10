@@ -27,7 +27,18 @@ impl Database {
         .bind(role)
         .execute(&self.pool)
         .await?;
-        Ok(result.last_insert_rowid())
+        let user_id = result.last_insert_rowid();
+
+        // Apply system default preferences for new user
+        let theme = self.get_setting("system.default_theme").await
+            .ok().flatten().unwrap_or_else(|| "system".to_string());
+        let language = self.get_setting("system.default_language").await
+            .ok().flatten().unwrap_or_else(|| "en".to_string());
+        let timezone = self.get_setting("system.default_timezone").await
+            .ok().flatten().unwrap_or_else(|| "auto".to_string());
+        let _ = self.save_user_preferences(user_id, &theme, &language, &timezone).await;
+
+        Ok(user_id)
     }
 
     pub async fn get_user_by_username(&self, username: &str) -> Result<Option<(i64, String)>> {

@@ -624,6 +624,12 @@
                 </svg>
                 <span data-i18n="admin.tab_checker">Checker Settings</span>
             </button>
+            <button class="admin-tab" data-tab="system">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+                <span data-i18n="admin.tab_system">System Settings</span>
+            </button>
         </div>
 
         <!-- ═══ Tab: Proxy Management ═══ -->
@@ -831,6 +837,72 @@
                     </div>
                     <div style="display:flex;gap:10px;margin-top:20px;">
                         <button type="submit" class="btn btn-primary" id="saveCheckerBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                            <span data-i18n="common.save">Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ═══ System Settings Panel ═══ -->
+        <div class="tab-panel" id="panel-system">
+            <div class="admin-section">
+                <div class="admin-section-header">
+                    <div class="admin-section-title">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                        </svg>
+                        <span data-i18n="admin.system_settings">System Settings</span>
+                    </div>
+                    <button class="btn btn-outline btn-sm" onclick="loadSystemSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                        </svg>
+                        <span data-i18n="common.refresh">Refresh</span>
+                    </button>
+                </div>
+                <form id="systemSettingsForm" onsubmit="saveSystemSettings(event)" style="max-width:600px;">
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:10px;">
+                            <span data-i18n="admin.auto_update">Auto Update</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="systemAutoUpdate" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                        <div class="form-hint" data-i18n="admin.auto_update_hint">When enabled, the system periodically checks for new releases and updates automatically</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.default_language">Default Language</label>
+                        <select class="form-select" id="systemDefaultLanguage">
+                            <option value="en">English</option>
+                            <option value="zh-CN">简体中文</option>
+                            <option value="zh-TW">繁體中文</option>
+                            <option value="ja">日本語</option>
+                        </select>
+                        <div class="form-hint" data-i18n="admin.default_language_hint">Default language for newly created users</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.default_timezone">Default Timezone</label>
+                        <select class="form-select" id="systemDefaultTimezone">
+                            <option value="auto" data-i18n="settings.timezone_auto">Auto (browser)</option>
+                        </select>
+                        <div class="form-hint" data-i18n="admin.default_timezone_hint">Default timezone for newly created users</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="admin.default_theme">Default Theme</label>
+                        <select class="form-select" id="systemDefaultTheme">
+                            <option value="system" data-i18n="common.theme_system">System</option>
+                            <option value="light" data-i18n="common.theme_light">Light</option>
+                            <option value="dark" data-i18n="common.theme_dark">Dark</option>
+                        </select>
+                        <div class="form-hint" data-i18n="admin.default_theme_hint">Default theme for newly created users</div>
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:20px;">
+                        <button type="submit" class="btn btn-primary" id="saveSystemBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                                 <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
                             </svg>
@@ -1185,6 +1257,7 @@
         loadSources();
         loadUsers();
         loadCheckerSettings();
+        loadSystemSettings();
         // Re-render dynamic content when locale changes
         I18N.onChange(() => {
             loadProxies();
@@ -1756,6 +1829,80 @@
             const json = await resp.json();
             if (json.success) {
                 showToast(I18N.t('admin.checker_saved') || 'Checker settings saved', 'success');
+            } else {
+                showToast(json.error || 'Failed to save settings', 'error');
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ═══════════════════════════════════
+    //  System Settings
+    // ═══════════════════════════════════
+
+    // Populate system timezone dropdown
+    (function populateSystemTimezones() {
+        const sel = document.getElementById('systemDefaultTimezone');
+        try {
+            const zones = Intl.supportedValuesOf('timeZone');
+            zones.forEach(tz => {
+                const opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz.replace(/_/g, ' ');
+                sel.appendChild(opt);
+            });
+        } catch(_) {
+            ['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+             'Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Asia/Shanghai',
+             'Asia/Taipei','Asia/Hong_Kong','Asia/Seoul','Asia/Singapore','Australia/Sydney',
+             'Pacific/Auckland'].forEach(tz => {
+                const opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz.replace(/_/g, ' ');
+                sel.appendChild(opt);
+            });
+        }
+    })();
+
+    async function loadSystemSettings() {
+        try {
+            const resp = await authFetch('/api/v1/admin/settings/system');
+            const json = await resp.json();
+            if (json.success) {
+                const d = json.data;
+                document.getElementById('systemAutoUpdate').checked = d.auto_update;
+                document.getElementById('systemDefaultLanguage').value = d.default_language;
+                document.getElementById('systemDefaultTimezone').value = d.default_timezone;
+                document.getElementById('systemDefaultTheme').value = d.default_theme;
+            }
+        } catch(e) {
+            showToast('Failed to load system settings', 'error');
+        }
+    }
+
+    async function saveSystemSettings(e) {
+        e.preventDefault();
+        if (demoGuard()) return;
+        const btn = document.getElementById('saveSystemBtn');
+        btn.disabled = true;
+        try {
+            const body = {
+                auto_update: document.getElementById('systemAutoUpdate').checked,
+                default_language: document.getElementById('systemDefaultLanguage').value,
+                default_timezone: document.getElementById('systemDefaultTimezone').value,
+                default_theme: document.getElementById('systemDefaultTheme').value,
+            };
+            const resp = await authFetch('/api/v1/admin/settings/system', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const json = await resp.json();
+            if (json.success) {
+                showToast(I18N.t('admin.system_saved') || 'System settings saved', 'success');
             } else {
                 showToast(json.error || 'Failed to save settings', 'error');
             }

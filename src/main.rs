@@ -7,6 +7,7 @@ mod models;
 mod mem_monitor;
 mod scheduler;
 mod sources;
+mod updater;
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -95,8 +96,12 @@ async fn main() -> anyhow::Result<()> {
     let state = Arc::new(AppState { db: db.clone(), demo_mode });
 
     // Start background schedulers
-    scheduler::start_schedulers(db).await;
+    scheduler::start_schedulers(db.clone()).await;
     info!("Background schedulers started");
+
+    // Start auto-updater
+    updater::spawn_auto_updater(db);
+    info!("Auto-updater started");
 
     // Start memory monitor (logs every 60 seconds)
     mem_monitor::spawn_monitor(60);
