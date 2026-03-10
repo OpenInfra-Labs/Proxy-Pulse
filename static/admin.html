@@ -284,6 +284,7 @@
             width: 40px;
             height: 22px;
             cursor: pointer;
+            display: inline-block;
         }
         .toggle input {
             opacity: 0;
@@ -293,7 +294,8 @@
         .toggle-slider {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 22px;
             transition: var(--transition);
         }
@@ -302,18 +304,45 @@
             position: absolute;
             width: 16px;
             height: 16px;
-            left: 3px;
-            bottom: 3px;
-            background: var(--text-secondary);
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-dim);
             border-radius: 50%;
             transition: var(--transition);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         .toggle input:checked + .toggle-slider {
-            background: rgba(0, 230, 138, 0.3);
+            background: rgba(0, 230, 138, 0.25);
+            border-color: rgba(0, 230, 138, 0.4);
         }
         .toggle input:checked + .toggle-slider::before {
             transform: translateX(18px);
             background: var(--accent-green);
+            box-shadow: 0 0 6px rgba(0, 230, 138, 0.4);
+        }
+        .toggle:hover .toggle-slider {
+            border-color: rgba(255,255,255,0.2);
+        }
+        .toggle:hover input:checked + .toggle-slider {
+            border-color: rgba(0, 230, 138, 0.5);
+        }
+        [data-theme="light"] .toggle-slider {
+            background: rgba(0,0,0,0.12);
+            border-color: rgba(0,0,0,0.15);
+        }
+        [data-theme="light"] .toggle-slider::before {
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        [data-theme="light"] .toggle input:checked + .toggle-slider {
+            background: rgba(5, 150, 105, 0.3);
+            border-color: rgba(5, 150, 105, 0.5);
+        }
+        [data-theme="light"] .toggle input:checked + .toggle-slider::before {
+            background: var(--accent-green);
+        }
+        [data-theme="light"] .toggle:hover .toggle-slider {
+            border-color: rgba(0,0,0,0.25);
         }
 
         /* Pagination */
@@ -453,12 +482,6 @@
         [data-theme="light"] .form-select,
         [data-theme="light"] .form-textarea {
             background: rgba(241, 245, 249, 0.8);
-        }
-        [data-theme="light"] .toggle-slider {
-            background: rgba(0, 0, 0, 0.12);
-        }
-        [data-theme="light"] .toggle-slider::before {
-            background: var(--text-dim);
         }
         [data-theme="light"] .data-table td {
             border-bottom-color: rgba(0, 0, 0, 0.04);
@@ -1268,6 +1291,17 @@
         if (type === 'url') body.url = url;
         if (type === 'text') body.content = content;
 
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const btnText = submitBtn.querySelector('span');
+        const origText = btnText.textContent;
+        submitBtn.disabled = true;
+        btnText.textContent = I18N.t('common.loading') || 'Loading...';
+        submitBtn.querySelector('svg').style.display = 'none';
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        spinner.style.marginRight = '4px';
+        submitBtn.prepend(spinner);
+
         try {
             const resp = await authFetch(`${API}/source/add`, {
                 method: 'POST',
@@ -1284,6 +1318,12 @@
                 showToast('Failed: ' + json.error, 'error');
             }
         } catch(e) { showToast('Error: ' + e.message, 'error'); }
+        finally {
+            submitBtn.disabled = false;
+            btnText.textContent = origText;
+            spinner.remove();
+            submitBtn.querySelector('svg').style.display = '';
+        }
     }
 
     async function deleteSource(id) {
