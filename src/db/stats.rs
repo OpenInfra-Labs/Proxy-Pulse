@@ -141,14 +141,15 @@ impl Database {
     }
 
     async fn get_score_distribution(&self) -> Result<Vec<ScoreBucket>> {
-        let row: (i64, i64, i64, i64, i64) = sqlx::query_as(
+        let row: (i64, i64, i64, i64, i64, i64) = sqlx::query_as(
             r#"
             SELECT
                 SUM(CASE WHEN score >= 0 AND score < 20 THEN 1 ELSE 0 END),
                 SUM(CASE WHEN score >= 20 AND score < 40 THEN 1 ELSE 0 END),
                 SUM(CASE WHEN score >= 40 AND score < 60 THEN 1 ELSE 0 END),
                 SUM(CASE WHEN score >= 60 AND score < 80 THEN 1 ELSE 0 END),
-                SUM(CASE WHEN score >= 80 AND score <= 100 THEN 1 ELSE 0 END)
+                SUM(CASE WHEN score >= 80 AND score < 90 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN score >= 90 AND score <= 100 THEN 1 ELSE 0 END)
             FROM proxies
             "#,
         )
@@ -160,7 +161,8 @@ impl Database {
             ScoreBucket { range: "20-40".to_string(), count: row.1 },
             ScoreBucket { range: "40-60".to_string(), count: row.2 },
             ScoreBucket { range: "60-80".to_string(), count: row.3 },
-            ScoreBucket { range: "80-100".to_string(), count: row.4 },
+            ScoreBucket { range: "80-90".to_string(), count: row.4 },
+            ScoreBucket { range: "90-100".to_string(), count: row.5 },
         ])
     }
 }

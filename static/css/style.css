@@ -564,15 +564,18 @@ body {
 }
 
 .bottom-row .score-dist-card {
-    height: 320px;
+    height: 370px;
 }
 
 .bottom-row .score-dist-card .chart-body {
-    height: 220px;
+    height: 270px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .bottom-row .table-card {
-    height: 320px;
+    height: 370px;
     display: flex;
     flex-direction: column;
 }
