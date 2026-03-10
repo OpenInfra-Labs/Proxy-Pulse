@@ -17,7 +17,10 @@
         "error": "错误",
         "success": "成功",
         "confirm_delete": "确定要删除吗？",
-        "no_data": "暂无数据"
+        "no_data": "暂无数据",
+        "theme_system": "跟随系统",
+        "theme_light": "浅色",
+        "theme_dark": "深色"
     },
     "dashboard": {
         "title": "Proxy Pulse — 仪表盘",

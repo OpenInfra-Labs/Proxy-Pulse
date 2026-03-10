@@ -60,9 +60,25 @@
                     <button class="lang-option" data-lang="zh-TW">繁體中文</button>
                     <button class="lang-option" data-lang="ja">日本語</button>
                 </div>
-            </div>
-            <div class="header-time" id="headerTime"></div>
-            <button onclick="logout()" style="padding:6px 14px;border-radius:8px;color:#ff4757;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.3);cursor:pointer;font-size:0.8rem;font-family:Inter,sans-serif;transition:0.3s;" onmouseover="this.style.background='rgba(255,71,87,0.15)'" onmouseout="this.style.background='rgba(255,71,87,0.08)'" data-i18n="common.logout">Logout</button>
+            </div>            <div class=\"theme-switcher\">
+                <button class=\"theme-btn\" id=\"themeBtn\" onclick=\"toggleThemeDropdown()\" title=\"Theme\">
+                    <svg id=\"themeIcon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"5\"/><line x1=\"12\" y1=\"1\" x2=\"12\" y2=\"3\"/><line x1=\"12\" y1=\"21\" x2=\"12\" y2=\"23\"/><line x1=\"4.22\" y1=\"4.22\" x2=\"5.64\" y2=\"5.64\"/><line x1=\"18.36\" y1=\"18.36\" x2=\"19.78\" y2=\"19.78\"/><line x1=\"1\" y1=\"12\" x2=\"3\" y2=\"12\"/><line x1=\"21\" y1=\"12\" x2=\"23\" y2=\"12\"/><line x1=\"4.22\" y1=\"19.78\" x2=\"5.64\" y2=\"18.36\"/><line x1=\"18.36\" y1=\"5.64\" x2=\"19.78\" y2=\"4.22\"/></svg>
+                </button>
+                <div class=\"theme-dropdown\" id=\"themeDropdown\">
+                    <button class=\"theme-option\" data-theme=\"system\" onclick=\"setTheme('system')\">
+                        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\" ry=\"2\"/><line x1=\"8\" y1=\"21\" x2=\"16\" y2=\"21\"/><line x1=\"12\" y1=\"17\" x2=\"12\" y2=\"21\"/></svg>
+                        <span data-i18n=\"common.theme_system\">System</span>
+                    </button>
+                    <button class=\"theme-option\" data-theme=\"light\" onclick=\"setTheme('light')\">
+                        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"5\"/><line x1=\"12\" y1=\"1\" x2=\"12\" y2=\"3\"/><line x1=\"12\" y1=\"21\" x2=\"12\" y2=\"23\"/><line x1=\"4.22\" y1=\"4.22\" x2=\"5.64\" y2=\"5.64\"/><line x1=\"18.36\" y1=\"18.36\" x2=\"19.78\" y2=\"19.78\"/><line x1=\"1\" y1=\"12\" x2=\"3\" y2=\"12\"/><line x1=\"21\" y1=\"12\" x2=\"23\" y2=\"12\"/><line x1=\"4.22\" y1=\"19.78\" x2=\"5.64\" y2=\"18.36\"/><line x1=\"18.36\" y1=\"5.64\" x2=\"19.78\" y2=\"4.22\"/></svg>
+                        <span data-i18n=\"common.theme_light\">Light</span>
+                    </button>
+                    <button class=\"theme-option\" data-theme=\"dark\" onclick=\"setTheme('dark')\">
+                        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z\"/></svg>
+                        <span data-i18n=\"common.theme_dark\">Dark</span>
+                    </button>
+                </div>
+            </div>            <button onclick="logout()" style="padding:6px 14px;border-radius:8px;color:#ff4757;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.3);cursor:pointer;font-size:0.8rem;font-family:Inter,sans-serif;transition:0.3s;" onmouseover="this.style.background='rgba(255,71,87,0.15)'" onmouseout="this.style.background='rgba(255,71,87,0.08)'" data-i18n="common.logout">Logout</button>
         </div>
     </header>
 
@@ -289,10 +305,69 @@
         <span class="footer-divider">|</span>
         <span>© 2026 <a href="https://github.com/OpenInfra-Labs" target="_blank" rel="noopener" style="color:var(--accent-cyan);text-decoration:none;">OpenInfra-Labs</a></span>
         <span class="footer-divider">|</span>
-        <a href="https://github.com/OpenInfra-Labs/Proxy-Pulse" target="_blank" rel="noopener" style="color:var(--text-dim);text-decoration:none;transition:color 0.3s;" onmouseover="this.style.color='var(--accent-cyan)'" onmouseout="this.style.color='var(--text-dim)'">GitHub</a>
+        <a href="https://github.com/OpenInfra-Labs/Proxy-Pulse" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;color:var(--text-dim);text-decoration:none;transition:color 0.3s;" onmouseover="this.style.color='var(--accent-cyan)'" onmouseout="this.style.color='var(--text-dim)'"><svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
     </footer>
 
     <script>
+    // ─── Theme Switcher ───
+    const THEME_ICONS = {
+        sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+        moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>',
+        system: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+    };
+
+    function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+
+    function applyTheme(resolved) {
+        document.documentElement.setAttribute('data-theme', resolved);
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.outerHTML = resolved === 'light' ? THEME_ICONS.sun : THEME_ICONS.moon;
+        // Re-select the new SVG by ID
+        const newIcon = document.querySelector('.theme-btn svg');
+        if (newIcon) newIcon.id = 'themeIcon';
+    }
+
+    function setTheme(mode) {
+        localStorage.setItem('pp_theme', mode);
+        const resolved = mode === 'system' ? getSystemTheme() : mode;
+        applyTheme(resolved);
+        updateThemeUI(mode);
+        document.getElementById('themeDropdown').classList.remove('open');
+    }
+
+    function updateThemeUI(mode) {
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === mode);
+        });
+    }
+
+    function toggleThemeDropdown() {
+        document.getElementById('themeDropdown').classList.toggle('open');
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.theme-switcher')) {
+            document.getElementById('themeDropdown').classList.remove('open');
+        }
+    });
+
+    // Listen for system preference changes
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+        const mode = localStorage.getItem('pp_theme') || 'system';
+        if (mode === 'system') applyTheme(getSystemTheme());
+    });
+
+    // Initialize theme
+    (function() {
+        const mode = localStorage.getItem('pp_theme') || 'system';
+        const resolved = mode === 'system' ? getSystemTheme() : mode;
+        applyTheme(resolved);
+        updateThemeUI(mode);
+    })();
+
     // ─── Language Switcher ───
     const LANG_LABELS = { 'en': 'EN', 'zh-CN': '简', 'zh-TW': '繁', 'ja': 'JP' };
 

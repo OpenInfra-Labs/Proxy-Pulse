@@ -17,7 +17,10 @@
         "error": "Error",
         "success": "Success",
         "confirm_delete": "Are you sure you want to delete this?",
-        "no_data": "No data available"
+        "no_data": "No data available",
+        "theme_system": "System",
+        "theme_light": "Light",
+        "theme_dark": "Dark"
     },
     "dashboard": {
         "title": "Proxy Pulse — Dashboard",

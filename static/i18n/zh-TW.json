@@ -17,7 +17,10 @@
         "error": "錯誤",
         "success": "成功",
         "confirm_delete": "確定要刪除嗎？",
-        "no_data": "暫無資料"
+        "no_data": "暫無資料",
+        "theme_system": "跟隨系統",
+        "theme_light": "淺色",
+        "theme_dark": "深色"
     },
     "dashboard": {
         "title": "Proxy Pulse — 儀表板",

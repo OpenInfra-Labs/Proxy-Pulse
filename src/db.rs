@@ -555,7 +555,6 @@ impl Database {
     }
 
     async fn get_latency_distribution(&self) -> Result<Vec<LatencyBucket>> {
-        // Query actual latency values from alive proxies to build dynamic buckets
         let rows: Vec<(f64,)> = sqlx::query_as(
             "SELECT avg_latency_ms FROM proxies WHERE is_alive = 1 AND avg_latency_ms > 0 ORDER BY avg_latency_ms",
         )
@@ -567,64 +566,69 @@ impl Database {
         }
 
         let values: Vec<f64> = rows.into_iter().map(|r| r.0).collect();
-        let min_val = values[0];
-        let max_val = values[values.len() - 1];
+        let n = values.len();
 
-        // If all values are the same, return a single bucket
-        if (max_val - min_val) < 1.0 {
-            return Ok(vec![LatencyBucket {
-                range: format!("{}ms", max_val.round() as i64),
-                count: values.len() as i64,
-            }]);
+        // Fewer than 5 distinct-ish values → one bucket per unique rounded value
+        if n < 5 {
+            let mut buckets = Vec::new();
+            for v in &values {
+                let label = format!("{}ms", v.round() as i64);
+                if let Some(last) = buckets.last_mut() {
+                    let b: &mut LatencyBucket = last;
+                    if b.range == label { b.count += 1; continue; }
+                }
+                buckets.push(LatencyBucket { range: label, count: 1 });
+            }
+            return Ok(buckets);
         }
 
-        // Compute nice bucket boundaries (5-8 buckets)
-        let raw_step = (max_val - min_val) / 6.0;
-        // Round step to a "nice" number
-        let magnitude = 10f64.powf(raw_step.log10().floor());
-        let nice_step = if raw_step / magnitude < 1.5 {
-            magnitude
-        } else if raw_step / magnitude < 3.5 {
-            2.0 * magnitude
-        } else if raw_step / magnitude < 7.5 {
-            5.0 * magnitude
-        } else {
-            10.0 * magnitude
-        };
-        let nice_step = nice_step.max(10.0); // minimum 10ms step
-
-        let bucket_start = (min_val / nice_step).floor() * nice_step;
-        let mut boundaries = vec![];
-        let mut b = bucket_start;
-        while b < max_val + nice_step {
-            boundaries.push(b);
-            b += nice_step;
-            if boundaries.len() > 12 { break; } // safety cap
+        // Use quantile-based splitting: divide sorted values into 5 equal parts
+        let chunk = n / 5;
+        let mut boundaries = Vec::with_capacity(6);
+        boundaries.push(values[0]);
+        for i in 1..5 {
+            let idx = i * chunk;
+            let raw = values[idx];
+            // Round boundary to a nice number
+            let nice = if raw < 100.0 {
+                (raw / 10.0).ceil() * 10.0
+            } else if raw < 1000.0 {
+                (raw / 50.0).ceil() * 50.0
+            } else {
+                (raw / 100.0).ceil() * 100.0
+            };
+            // Avoid duplicate boundaries
+            let prev = *boundaries.last().unwrap();
+            if nice <= prev {
+                boundaries.push(prev + 1.0);
+            } else {
+                boundaries.push(nice);
+            }
         }
+        boundaries.push(f64::INFINITY);
 
-        let mut buckets: Vec<LatencyBucket> = Vec::new();
-        for i in 0..boundaries.len() - 1 {
+        let mut buckets: Vec<LatencyBucket> = Vec::with_capacity(5);
+        for i in 0..5 {
             let lo = boundaries[i];
             let hi = boundaries[i + 1];
             let count = values.iter().filter(|&&v| v >= lo && v < hi).count() as i64;
-            let range = format!("{}-{}ms", lo.round() as i64, hi.round() as i64);
+            let range = if hi.is_infinite() {
+                format!("{}ms+", lo.round() as i64)
+            } else {
+                format!("{}-{}ms", lo.round() as i64, hi.round() as i64)
+            };
             buckets.push(LatencyBucket { range, count });
         }
-        // Last boundary: anything >= last lo
-        let last_lo = *boundaries.last().unwrap_or(&0.0);
-        let overflow = values.iter().filter(|&&v| v >= last_lo).count() as i64;
-        if overflow > 0 && !boundaries.is_empty() {
-            // Merge into last bucket if it exists, otherwise create one
-            if let Some(last) = buckets.last_mut() {
-                last.count += overflow;
-                let lo = boundaries[boundaries.len() - 2];
-                last.range = format!("{}ms+", lo.round() as i64);
+
+        // Merge any empty bucket into its neighbor
+        loop {
+            if let Some(pos) = buckets.iter().position(|b| b.count == 0) {
+                if buckets.len() <= 1 { break; }
+                buckets.remove(pos);
+            } else {
+                break;
             }
         }
-
-        // Remove empty buckets at the edges
-        while buckets.first().map(|b| b.count) == Some(0) { buckets.remove(0); }
-        while buckets.last().map(|b| b.count) == Some(0) { buckets.pop(); }
 
         Ok(buckets)
     }

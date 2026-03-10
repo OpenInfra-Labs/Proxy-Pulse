@@ -447,6 +447,34 @@
         }
 
         .table-wrapper { overflow-x: auto; }
+
+        /* ─── Admin Light Theme Overrides ─── */
+        [data-theme="light"] .form-input,
+        [data-theme="light"] .form-select,
+        [data-theme="light"] .form-textarea {
+            background: rgba(241, 245, 249, 0.8);
+        }
+        [data-theme="light"] .toggle-slider {
+            background: rgba(0, 0, 0, 0.12);
+        }
+        [data-theme="light"] .toggle-slider::before {
+            background: var(--text-dim);
+        }
+        [data-theme="light"] .data-table td {
+            border-bottom-color: rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="light"] .data-table tbody tr:hover {
+            background: rgba(8, 145, 178, 0.04);
+        }
+        [data-theme="light"] .toast {
+            border-color: var(--border-subtle);
+        }
+        [data-theme="light"] .admin-tab:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="light"] .admin-tab.active {
+            background: rgba(8, 145, 178, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -501,6 +529,25 @@
                     <button class="lang-option" data-lang="zh-CN">简体中文</button>
                     <button class="lang-option" data-lang="zh-TW">繁體中文</button>
                     <button class="lang-option" data-lang="ja">日本語</button>
+                </div>
+            </div>
+            <div class="theme-switcher">
+                <button class="theme-btn" id="themeBtn" onclick="toggleThemeDropdown()" title="Theme">
+                    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                <div class="theme-dropdown" id="themeDropdown">
+                    <button class="theme-option" data-theme="system" onclick="setTheme('system')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span data-i18n="common.theme_system">System</span>
+                    </button>
+                    <button class="theme-option" data-theme="light" onclick="setTheme('light')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        <span data-i18n="common.theme_light">Light</span>
+                    </button>
+                    <button class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                        <span data-i18n="common.theme_dark">Dark</span>
+                    </button>
                 </div>
             </div>
             <button onclick="logout()" style="padding:6px 14px;border-radius:8px;color:#ff4757;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.3);cursor:pointer;font-size:0.8rem;font-family:Inter,sans-serif;transition:0.3s;" onmouseover="this.style.background='rgba(255,71,87,0.15)'" onmouseout="this.style.background='rgba(255,71,87,0.08)'" data-i18n="common.logout">Logout</button>
@@ -924,6 +971,48 @@
         }
         return false;
     }
+
+    // ─── Theme Switcher ───
+    function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    function applyTheme(resolved) {
+        document.documentElement.setAttribute('data-theme', resolved);
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+            icon.outerHTML = resolved === 'light'
+                ? '<svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+                : '<svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+        }
+    }
+    function setTheme(mode) {
+        localStorage.setItem('pp_theme', mode);
+        applyTheme(mode === 'system' ? getSystemTheme() : mode);
+        updateThemeUI(mode);
+        document.getElementById('themeDropdown').classList.remove('open');
+    }
+    function updateThemeUI(mode) {
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === mode);
+        });
+    }
+    function toggleThemeDropdown() {
+        document.getElementById('themeDropdown').classList.toggle('open');
+    }
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.theme-switcher')) {
+            document.getElementById('themeDropdown').classList.remove('open');
+        }
+    });
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+        const mode = localStorage.getItem('pp_theme') || 'system';
+        if (mode === 'system') applyTheme(getSystemTheme());
+    });
+    (function() {
+        const mode = localStorage.getItem('pp_theme') || 'system';
+        applyTheme(mode === 'system' ? getSystemTheme() : mode);
+        updateThemeUI(mode);
+    })();
 
     // ─── Language Switcher ───
     const LANG_LABELS = { 'en': 'EN', 'zh-CN': '简', 'zh-TW': '繁', 'ja': 'JP' };
@@ -1475,15 +1564,6 @@
             showToast('Error: ' + e.message, 'error');
         }
     }
-
-    // Update header time
-    function updateTime() {
-        const now = new Date();
-        const el = document.getElementById('headerTime');
-        if (el) el.textContent = now.toLocaleTimeString('en-US', { hour12: false });
-    }
-    setInterval(updateTime, 1000);
-    updateTime();
     </script>
 </body>
 </html>

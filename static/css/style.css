@@ -47,6 +47,144 @@
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ─── Light Theme ─── */
+[data-theme="light"] {
+    --bg-primary: #f0f2f5;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(245, 247, 250, 0.95);
+
+    --accent-cyan: #0891b2;
+    --accent-purple: #6d28d9;
+    --accent-green: #059669;
+    --accent-red: #dc2626;
+    --accent-orange: #d97706;
+    --accent-blue: #2563eb;
+
+    --gradient-primary: linear-gradient(135deg, #0891b2 0%, #6d28d9 100%);
+    --gradient-success: linear-gradient(135deg, #059669 0%, #0891b2 100%);
+    --gradient-danger: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
+    --gradient-score: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+    --gradient-latency: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-dim: #94a3b8;
+
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-accent: rgba(8, 145, 178, 0.25);
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--border-subtle);
+    --shadow-glow-cyan: 0 4px 16px rgba(8, 145, 178, 0.1);
+    --shadow-glow-purple: 0 4px 16px rgba(109, 40, 217, 0.1);
+}
+
+[data-theme="light"] .bg-grid {
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
+[data-theme="light"] .bg-glow-1 {
+    background: radial-gradient(circle, rgba(8, 145, 178, 0.08), transparent 70%);
+}
+[data-theme="light"] .bg-glow-2 {
+    background: radial-gradient(circle, rgba(109, 40, 217, 0.06), transparent 70%);
+}
+[data-theme="light"] .bg-glow-3 {
+    background: radial-gradient(circle, rgba(5, 150, 105, 0.05), transparent 70%);
+}
+
+[data-theme="light"] .header {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="light"] .lang-btn,
+[data-theme="light"] .theme-btn {
+    background: rgba(241, 245, 249, 0.8);
+}
+
+[data-theme="light"] .lang-dropdown,
+[data-theme="light"] .theme-dropdown {
+    background: #ffffff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .token-dropdown-menu {
+    background: #ffffff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .token-dropdown-item:hover {
+    background: rgba(8, 145, 178, 0.06);
+}
+[data-theme="light"] .token-dropdown-item.selected {
+    background: rgba(8, 145, 178, 0.1);
+}
+
+[data-theme="light"] .api-result-row {
+    background: rgba(241, 245, 249, 0.8);
+}
+
+[data-theme="light"] tbody tr:hover {
+    background: rgba(8, 145, 178, 0.04);
+}
+
+[data-theme="light"] .stat-icon { background: rgba(8, 145, 178, 0.08); }
+[data-theme="light"] .stat-icon.alive { background: rgba(5, 150, 105, 0.08); }
+[data-theme="light"] .stat-icon.dead { background: rgba(220, 38, 38, 0.08); }
+[data-theme="light"] .stat-icon.score { background: rgba(217, 119, 6, 0.08); }
+[data-theme="light"] .stat-icon.latency { background: rgba(37, 99, 235, 0.08); }
+
+[data-theme="light"] .stat-bar {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .protocol-http { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+[data-theme="light"] .protocol-https { background: rgba(5, 150, 105, 0.1); color: #059669; }
+[data-theme="light"] .protocol-socks5 { background: rgba(109, 40, 217, 0.1); color: #6d28d9; }
+[data-theme="light"] .protocol-socks4 { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+
+[data-theme="light"] .status-alive {
+    background: rgba(5, 150, 105, 0.1);
+}
+[data-theme="light"] .status-dead {
+    background: rgba(220, 38, 38, 0.1);
+}
+
+[data-theme="light"] .score-bar-bg {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .api-toggle-btn.active {
+    background: rgba(8, 145, 178, 0.1);
+}
+
+[data-theme="light"] .api-toggle-btn:hover {
+    background: rgba(8, 145, 178, 0.06);
+}
+
+[data-theme="light"] .chart-badge {
+    background: rgba(8, 145, 178, 0.08);
+    border-color: rgba(8, 145, 178, 0.15);
+}
+
+[data-theme="light"] .status-pill {
+    background: rgba(5, 150, 105, 0.08);
+    border-color: rgba(5, 150, 105, 0.2);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .token-dropdown-menu::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+}
+
 /* ─── Reset ─── */
 *, *::before, *::after {
     margin: 0;
@@ -1016,6 +1154,88 @@ tbody tr:hover {
 .lang-option.active {
     color: var(--accent-cyan);
     background: rgba(0, 240, 255, 0.1);
+}
+
+/* ─── Theme Switcher ─── */
+.theme-switcher {
+    position: relative;
+}
+
+.theme-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(15, 20, 40, 0.6);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-btn:hover {
+    color: var(--accent-cyan);
+    border-color: var(--border-accent);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.theme-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.theme-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 140px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+}
+
+.theme-dropdown.open {
+    display: block;
+}
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 7px;
+    transition: var(--transition);
+}
+
+.theme-option:hover {
+    background: rgba(0, 240, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.theme-option.active {
+    color: var(--accent-cyan);
+    background: rgba(0, 240, 255, 0.1);
+}
+
+.theme-option svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
 }
 
 /* ─── Scrollbar ─── */

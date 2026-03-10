@@ -7,6 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        // Apply saved theme immediately to prevent flash
+        (function() {
+            var mode = localStorage.getItem('pp_theme') || 'system';
+            var resolved = mode === 'system'
+                ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+                : mode;
+            document.documentElement.setAttribute('data-theme', resolved);
+        })();
+    </script>
     <style>
         .login-container {
             display: flex;

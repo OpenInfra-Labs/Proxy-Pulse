@@ -40,7 +40,19 @@ let protocolChart = null;
 let scoreChart = null;
 
 // ─── Chart.js Global Defaults ───
-Chart.defaults.color = '#8892b0';
+function updateChartTheme() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    Chart.defaults.color = isLight ? '#64748b' : '#8892b0';
+}
+updateChartTheme();
+// Listen for theme changes
+new MutationObserver(() => {
+    updateChartTheme();
+    if (latencyChart) latencyChart.update();
+    if (protocolChart) protocolChart.update();
+    if (scoreChart) scoreChart.update();
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.font.size = 11;
 Chart.defaults.plugins.legend.labels.usePointStyle = true;
@@ -70,8 +82,6 @@ const CHART_PALETTE = [
 
 // ─── Initialize ───
 document.addEventListener('DOMContentLoaded', () => {
-    updateTime();
-    setInterval(updateTime, 1000);
     initCharts();
     fetchAllData();
     setInterval(fetchAllData, REFRESH_INTERVAL);
@@ -84,23 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-// ─── Time Display ───
-function updateTime() {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
-    const dateStr = now.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    });
-    document.getElementById('headerTime').textContent = `${dateStr}  ${timeStr}`;
-}
 
 // ─── Fetch All Data ───
 async function fetchAllData() {
