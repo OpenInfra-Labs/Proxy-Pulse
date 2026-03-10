@@ -9,6 +9,20 @@ use crate::config::{CheckerConfig, ScoringConfig};
 use crate::db::Database;
 use crate::models::Proxy;
 
+/// Shared direct HTTP client (not proxied) for GeoIP lookups etc.
+static DIRECT_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+
+fn direct_client() -> &'static reqwest::Client {
+    DIRECT_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(8))
+            .pool_max_idle_per_host(2)
+            .tcp_nodelay(true)
+            .build()
+            .expect("Failed to build direct HTTP client")
+    })
+}
+
 /// Run a check cycle: fetch due proxies and check them
 pub async fn run_check_cycle(
     db: &Database,
@@ -29,8 +43,8 @@ pub async fn run_check_cycle(
     let semaphore = Arc::new(Semaphore::new(checker_cfg.max_concurrent));
     let db = db.clone();
     let timeout = std::time::Duration::from_secs(checker_cfg.timeout_secs);
-    let targets = checker_cfg.targets.clone();
-    let scoring_cfg = scoring_cfg.clone();
+    let targets: Arc<[String]> = checker_cfg.targets.clone().into();
+    let scoring_cfg = Arc::new(scoring_cfg.clone());
 
     let mut handles = Vec::new();
 
@@ -176,9 +190,13 @@ async fn check_proxy_against_target(
         .proxy(proxy)
         .timeout(timeout)
         .danger_accept_invalid_certs(true)
+        .pool_max_idle_per_host(0)
+        .tcp_nodelay(true)
+        .redirect(reqwest::redirect::Policy::limited(3))
         .build()?;
 
     let resp = client.get(target).send().await?;
+    drop(client); // Eagerly release connection pool memory
 
     if resp.status().is_success() || resp.status().is_redirection() {
         Ok(())
@@ -259,18 +277,22 @@ fn calculate_score(
 }
 
 /// Try to detect proxy metadata (anonymity, protocol detection)
+/// Only runs for proxies that still have unknown metadata to avoid redundant work.
 async fn detect_and_update_metadata(db: &Database, proxy: &Proxy) -> Result<()> {
     let proxy_addr = format!("{}:{}", proxy.ip, proxy.port);
 
-    // Try to detect anonymity via httpbin
-    let anonymity = detect_anonymity(&proxy_addr, &proxy.protocol).await
-        .unwrap_or_else(|_| "unknown".to_string());
+    // Skip anonymity redetection if already known
+    let anonymity = if proxy.anonymity == "unknown" {
+        detect_anonymity(&proxy_addr, &proxy.protocol).await
+            .unwrap_or_else(|_| "unknown".to_string())
+    } else {
+        proxy.anonymity.clone()
+    };
 
-    // Detect protocol by testing different protocols
-    let protocol = detect_protocol(&proxy.ip, proxy.port).await
-        .unwrap_or_else(|_| proxy.protocol.clone());
+    // Skip protocol redetection if already known
+    let protocol = proxy.protocol.clone();
 
-    // Country detection — use the proxy's IP directly with a GeoIP API
+    // Country detection — only if unknown
     let country = if proxy.country == "unknown" {
         detect_country_by_ip(&proxy.ip).await
             .unwrap_or_else(|_| "unknown".to_string())
@@ -278,8 +300,11 @@ async fn detect_and_update_metadata(db: &Database, proxy: &Proxy) -> Result<()> 
         proxy.country.clone()
     };
 
-    db.update_proxy_metadata(proxy.id, &country, &anonymity, &protocol)
-        .await?;
+    // Only write to DB if something actually changed
+    if anonymity != proxy.anonymity || protocol != proxy.protocol || country != proxy.country {
+        db.update_proxy_metadata(proxy.id, &country, &anonymity, &protocol)
+            .await?;
+    }
 
     Ok(())
 }
@@ -292,6 +317,7 @@ async fn detect_anonymity(proxy_addr: &str, protocol: &str) -> Result<String> {
         .proxy(proxy)
         .timeout(std::time::Duration::from_secs(10))
         .danger_accept_invalid_certs(true)
+        .pool_max_idle_per_host(0)
         .build()?;
 
     let resp = client
@@ -317,40 +343,11 @@ async fn detect_anonymity(proxy_addr: &str, protocol: &str) -> Result<String> {
     }
 }
 
-async fn detect_protocol(ip: &str, port: u16) -> Result<String> {
-    let addr = format!("{}:{}", ip, port);
 
-    // Try SOCKS5
-    let socks_proxy = reqwest::Proxy::all(format!("socks5://{}", addr))?;
-    let client = reqwest::Client::builder()
-        .proxy(socks_proxy)
-        .timeout(std::time::Duration::from_secs(5))
-        .build()?;
-
-    if client.get("https://httpbin.org/ip").send().await.is_ok() {
-        return Ok("socks5".to_string());
-    }
-
-    // Try HTTPS
-    let https_proxy = reqwest::Proxy::all(format!("https://{}", addr))?;
-    let client = reqwest::Client::builder()
-        .proxy(https_proxy)
-        .timeout(std::time::Duration::from_secs(5))
-        .danger_accept_invalid_certs(true)
-        .build()?;
-
-    if client.get("https://httpbin.org/ip").send().await.is_ok() {
-        return Ok("https".to_string());
-    }
-
-    Ok("http".to_string())
-}
 
 /// Detect country from the proxy's IP address using free GeoIP APIs (direct, not through proxy)
 async fn detect_country_by_ip(ip: &str) -> Result<String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(8))
-        .build()?;
+    let client = direct_client();
 
     // Try ip-api.com first (free, no key required, 45 req/min)
     if let Ok(resp) = client

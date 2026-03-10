@@ -7,6 +7,10 @@ mod models;
 mod scheduler;
 mod sources;
 
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 use std::sync::Arc;
 
 use axum::{middleware, Router};

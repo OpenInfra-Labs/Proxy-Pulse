@@ -61,6 +61,7 @@ async fn load_from_file(path: &str) -> Result<Vec<RawProxy>> {
 async fn load_from_url(url: &str) -> Result<Vec<RawProxy>> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
+        .pool_max_idle_per_host(0)
         .build()?;
 
     let resp = client.get(url).send().await?;

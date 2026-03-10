@@ -471,11 +471,14 @@
         btn.textContent = I18N.t('dashboard.api_token_create') || '+ Create';
     }
 
-    loadApiTokens();
+    // Defer loadApiTokens until authFetch is available (defined in app.js loaded after this script)
+    window._loadApiTokens = loadApiTokens;
+    window._quickCreateToken = quickCreateToken;
 
     // Init i18n then start app
     I18N.init().then(() => updateLangUI(I18N.locale));
     </script>
     <script src="/static/js/app.js"></script>
+    <script>window._loadApiTokens && window._loadApiTokens();</script>
 </body>
 </html>

@@ -15,7 +15,9 @@ pub struct Database {
 impl Database {
     pub async fn new(url: &str) -> Result<Self> {
         let pool = SqlitePoolOptions::new()
-            .max_connections(10)
+            .max_connections(50)
+            .min_connections(2)
+            .idle_timeout(std::time::Duration::from_secs(300))
             .connect(url)
             .await?;
 

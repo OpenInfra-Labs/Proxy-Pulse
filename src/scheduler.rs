@@ -148,13 +148,13 @@ pub async fn start_schedulers(db: Database, config: Arc<AppConfig>) {
 
     let db_cleanup = db.clone();
 
-    // Log cleanup scheduler (daily)
+    // Log cleanup scheduler (every 6 hours)
     tokio::spawn(async move {
-        let mut ticker = interval(Duration::from_secs(86400)); // 24 hours
+        let mut ticker = interval(Duration::from_secs(21600)); // 6 hours
 
         loop {
             ticker.tick().await;
-            match db_cleanup.cleanup_old_logs(7).await {
+            match db_cleanup.cleanup_old_logs(3).await {
                 Ok(count) => info!(deleted = count, "Old check logs cleaned up"),
                 Err(e) => error!(error = %e, "Log cleanup failed"),
             }
