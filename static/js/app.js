@@ -120,7 +120,7 @@ async function fetchAllData() {
         }
 
         document.getElementById('lastUpdate').textContent =
-            `${I18N.t('dashboard.last_update')}: ${new Date().toLocaleTimeString('en-US', { hour12: false })}`;
+            `${I18N.t('dashboard.last_update')}: ${TZ.fmtTime(new Date())}`;
     } catch (err) {
         console.error('Failed to fetch data:', err);
     }

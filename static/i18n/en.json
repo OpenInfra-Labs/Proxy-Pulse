@@ -83,7 +83,9 @@
         "language": "Language",
         "theme": "Theme",
         "save_preferences": "Save Preferences",
-        "preferences_saved": "Preferences saved"
+        "preferences_saved": "Preferences saved",
+        "timezone": "Timezone",
+        "timezone_auto": "Auto (browser)"
     },
     "admin": {
         "title": "Proxy Pulse — Admin Panel",

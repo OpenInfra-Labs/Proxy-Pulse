@@ -83,7 +83,9 @@
         "language": "语言",
         "theme": "主题",
         "save_preferences": "保存设置",
-        "preferences_saved": "设置已保存"
+        "preferences_saved": "设置已保存",
+        "timezone": "时区",
+        "timezone_auto": "自动（浏览器）"
     },
     "admin": {
         "title": "Proxy Pulse — 管理面板",

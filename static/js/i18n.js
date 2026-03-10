@@ -77,3 +77,58 @@ const I18N = {
         this._listeners.push(fn);
     }
 };
+
+/* ─────────────────────────────────────────────
+   Timezone-aware date formatting utility
+   ───────────────────────────────────────────── */
+const TZ = {
+    _zone: 'auto',
+
+    get zone() {
+        return this._zone === 'auto'
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+            : this._zone;
+    },
+
+    set(tz) {
+        this._zone = tz || 'auto';
+        localStorage.setItem('pp-tz', this._zone);
+    },
+
+    init() {
+        this._zone = localStorage.getItem('pp-tz') || 'auto';
+    },
+
+    /** Format a UTC datetime string (from server) into the user's timezone.
+     *  @param {string} utcStr - datetime string from server (assumed UTC if no 'Z')
+     *  @param {object} [opts] - Intl.DateTimeFormat options override
+     *  @returns {string} formatted date string, or '—' if input is falsy
+     */
+    fmt(utcStr, opts) {
+        if (!utcStr) return '—';
+        // Ensure the string is treated as UTC
+        let str = utcStr.trim();
+        if (!str.endsWith('Z') && !str.includes('+') && !str.includes('T')) {
+            str = str.replace(' ', 'T') + 'Z';
+        } else if (!str.endsWith('Z') && !str.includes('+')) {
+            str += 'Z';
+        }
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return utcStr;
+        const defaults = { year: 'numeric', month: '2-digit', day: '2-digit',
+                           hour: '2-digit', minute: '2-digit', second: '2-digit',
+                           hour12: false, timeZone: this.zone };
+        return d.toLocaleString(undefined, Object.assign(defaults, opts || {}));
+    },
+
+    /** Format date-only */
+    fmtDate(utcStr) {
+        return this.fmt(utcStr, { hour: undefined, minute: undefined, second: undefined });
+    },
+
+    /** Format time-only (for "last update" style) */
+    fmtTime(date) {
+        if (!(date instanceof Date)) date = new Date();
+        return date.toLocaleTimeString(undefined, { hour12: false, timeZone: this.zone });
+    }
+};

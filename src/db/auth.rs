@@ -231,14 +231,14 @@ impl Database {
 
     // ── User Preferences ──
 
-    pub async fn get_user_preferences(&self, user_id: i64) -> Result<(String, String)> {
-        let row = sqlx::query_as::<_, (String, String)>(
-            "SELECT theme, language FROM user_preferences WHERE user_id = ?",
+    pub async fn get_user_preferences(&self, user_id: i64) -> Result<(String, String, String)> {
+        let row = sqlx::query_as::<_, (String, String, String)>(
+            "SELECT theme, language, timezone FROM user_preferences WHERE user_id = ?",
         )
         .bind(user_id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.unwrap_or_else(|| ("system".to_string(), "en".to_string())))
+        Ok(row.unwrap_or_else(|| ("system".to_string(), "en".to_string(), "auto".to_string())))
     }
 
     pub async fn save_user_preferences(
@@ -246,20 +246,23 @@ impl Database {
         user_id: i64,
         theme: &str,
         language: &str,
+        timezone: &str,
     ) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_preferences (user_id, theme, language, updated_at)
-            VALUES (?, ?, ?, datetime('now'))
+            INSERT INTO user_preferences (user_id, theme, language, timezone, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
             ON CONFLICT(user_id) DO UPDATE SET
                 theme = excluded.theme,
                 language = excluded.language,
+                timezone = excluded.timezone,
                 updated_at = excluded.updated_at
             "#,
         )
         .bind(user_id)
         .bind(theme)
         .bind(language)
+        .bind(timezone)
         .execute(&self.pool)
         .await?;
         Ok(())

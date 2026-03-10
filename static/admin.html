@@ -1105,6 +1105,7 @@
             if (json.success) {
                 const cachedTheme = localStorage.getItem('pp_theme');
                 const cachedLang = localStorage.getItem('pp-lang');
+                if (json.timezone) TZ.set(json.timezone);
                 if (json.theme !== cachedTheme) {
                     localStorage.setItem('pp_theme', json.theme);
                     applyTheme(json.theme === 'system' ? getSystemTheme() : json.theme);
@@ -1119,6 +1120,7 @@
         } catch(e) { /* ignore */ }
     }
 
+    TZ.init();
     I18N.init().then(() => {
         loadUserInfo();
         loadPreferences();
@@ -1243,8 +1245,8 @@
                     <td class="mono">${p.latency_ms > 0 ? p.latency_ms.toFixed(0) + 'ms' : '—'}</td>
                     <td><span style="color:var(--accent-green)">${p.success_count}</span> / <span style="color:var(--accent-red)">${p.fail_count}</span></td>
                     <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(p.source)}">${escHtml(p.source)}</td>
-                    <td style="font-size:0.78rem;color:var(--text-dim)">${p.last_check_at || '—'}</td>
-                    <td style="font-size:0.78rem;color:var(--text-dim)">${p.next_check_at || '—'}</td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${TZ.fmt(p.last_check_at)}</td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${TZ.fmt(p.next_check_at)}</td>
                     <td>
                         <div class="row-actions">
                             <button class="btn btn-danger btn-icon btn-sm" onclick="deleteProxy(${p.id})" title="Delete">
@@ -1349,7 +1351,7 @@
                             <span class="toggle-slider"></span>
                         </label>
                     </td>
-                    <td style="font-size:0.78rem;color:var(--text-dim)">${s.last_sync_at || '—'}</td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${TZ.fmt(s.last_sync_at)}</td>
                     <td>${s.last_error ? `<span class="error-text" title="${escHtml(s.last_error)}">${escHtml(s.last_error)}</span>` : '<span style="color:var(--accent-green)">OK</span>'}</td>
                     <td>
                         <div class="row-actions">
@@ -1554,7 +1556,7 @@
                     <td class="mono">${u.id}</td>
                     <td style="font-weight:500;">${escHtml(u.username)}</td>
                     <td><span class="badge ${u.role === 'admin' ? 'badge-alive' : 'badge-protocol'}">${u.role.toUpperCase()}</span></td>
-                    <td style="font-size:0.78rem;color:var(--text-dim)">${u.created_at || '—'}</td>
+                    <td style="font-size:0.78rem;color:var(--text-dim)">${TZ.fmt(u.created_at)}</td>
                     <td>
                         <div class="row-actions">
                             <button class="btn btn-outline btn-sm" onclick="openEditUserModal(${u.id}, '${escHtml(u.username)}', '${escHtml(u.role)}')" style="padding:4px 10px;font-size:0.75rem;">

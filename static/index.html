@@ -364,6 +364,7 @@
             if (json.success) {
                 const cachedTheme = localStorage.getItem('pp_theme');
                 const cachedLang = localStorage.getItem('pp-lang');
+                if (json.timezone) TZ.set(json.timezone);
                 if (json.theme !== cachedTheme) {
                     localStorage.setItem('pp_theme', json.theme);
                     applyTheme(json.theme === 'system' ? getSystemTheme() : json.theme);
@@ -491,8 +492,7 @@
                     let label = k.name;
                     let meta = '';
                     if (k.expires_at) {
-                        const exp = new Date(k.expires_at + 'Z');
-                        meta = `${I18N.t('dashboard.api_token_expires') || 'expires'} ${exp.toLocaleDateString()}`;
+                        meta = `${I18N.t('dashboard.api_token_expires') || 'expires'} ${TZ.fmtDate(k.expires_at)}`;
                     } else {
                         meta = I18N.t('admin.expiry_never') || 'Never expires';
                     }
@@ -505,8 +505,7 @@
                     let label = `${k.name} — ${k.preview}`;
                     let meta = '';
                     if (k.expires_at) {
-                        const exp = new Date(k.expires_at + 'Z');
-                        meta = exp.toLocaleDateString();
+                        meta = TZ.fmtDate(k.expires_at);
                     }
                     meta += ` [${I18N.t('dashboard.api_token_no_key') || 'key not saved locally'}]`;
                     item.innerHTML = `<span class="token-item-name">${escapeHtmlInline(label)}</span><span class="token-item-meta">${escapeHtmlInline(meta.trim())}</span>`;
@@ -572,6 +571,7 @@
     window._quickCreateToken = quickCreateToken;
 
     // Init i18n then load user info and preferences
+    TZ.init();
     I18N.init().then(() => {
         loadUserInfo();
         loadPreferences();

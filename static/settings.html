@@ -320,6 +320,13 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label" data-i18n="settings.timezone">Timezone</label>
+                    <select class="form-select" id="prefTimezone">
+                        <option value="auto" data-i18n="settings.timezone_auto">Auto (browser)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label" data-i18n="settings.theme">Theme</label>
                     <div class="theme-options">
                         <button class="theme-opt" data-theme="system" onclick="selectTheme('system')">
@@ -538,6 +545,31 @@
     // ─── Preferences ───
     let currentTheme = localStorage.getItem('pp_theme') || 'system';
 
+    // Populate timezone dropdown with IANA timezones
+    (function populateTimezones() {
+        const sel = document.getElementById('prefTimezone');
+        try {
+            const zones = Intl.supportedValuesOf('timeZone');
+            zones.forEach(tz => {
+                const opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz.replace(/_/g, ' ');
+                sel.appendChild(opt);
+            });
+        } catch(_) {
+            // Fallback for older browsers
+            ['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+             'Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Asia/Shanghai',
+             'Asia/Taipei','Asia/Hong_Kong','Asia/Seoul','Asia/Singapore','Australia/Sydney',
+             'Pacific/Auckland'].forEach(tz => {
+                const opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz.replace(/_/g, ' ');
+                sel.appendChild(opt);
+            });
+        }
+    })();
+
     function selectTheme(mode) {
         currentTheme = mode;
         document.querySelectorAll('.theme-opt').forEach(btn => {
@@ -553,6 +585,9 @@
             if (json.success) {
                 // Set language dropdown
                 document.getElementById('prefLanguage').value = json.language;
+                // Set timezone dropdown
+                document.getElementById('prefTimezone').value = json.timezone || 'auto';
+                TZ.set(json.timezone || 'auto');
                 // Set theme buttons
                 currentTheme = json.theme;
                 selectTheme(json.theme);
@@ -578,16 +613,18 @@
         btn.disabled = true;
         const theme = currentTheme;
         const language = document.getElementById('prefLanguage').value;
+        const timezone = document.getElementById('prefTimezone').value;
         try {
             const resp = await authFetch('/api/v1/auth/preferences', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme, language }),
+                body: JSON.stringify({ theme, language, timezone }),
             });
             const json = await resp.json();
             if (json.success) {
                 localStorage.setItem('pp_theme', theme);
                 localStorage.setItem('pp-lang', language);
+                TZ.set(timezone);
                 applyTheme(theme === 'system' ? getSystemTheme() : theme);
                 if (I18N.locale !== language) {
                     await I18N.setLocale(language);
@@ -661,15 +698,14 @@
                 } else if (k.expired) {
                     expiryCell = '<span style="color:var(--accent-red);">' + (I18N.t('admin.expiry_expired') || 'Expired') + '</span>';
                 } else {
-                    const d = new Date(k.expires_at + 'Z');
-                    expiryCell = '<span style="color:var(--text-secondary);">' + d.toLocaleString() + '</span>';
+                    expiryCell = '<span style="color:var(--text-secondary);">' + TZ.fmt(k.expires_at) + '</span>';
                 }
                 const rowStyle = k.expired ? 'opacity:0.5;' : '';
                 return '<tr style="' + rowStyle + '">' +
                     '<td><strong>' + escHtml(k.name) + '</strong></td>' +
                     '<td><code style="font-family:\'JetBrains Mono\',monospace;font-size:0.82rem;color:var(--text-secondary);">' + escHtml(k.preview) + '</code></td>' +
                     '<td>' + expiryCell + '</td>' +
-                    '<td style="color:var(--text-secondary);">' + k.created_at + '</td>' +
+                    '<td style="color:var(--text-secondary);">' + TZ.fmt(k.created_at) + '</td>' +
                     '<td><button class="btn btn-danger btn-sm" onclick="deleteApiKey(' + k.id + ')" style="padding:4px 10px;font-size:0.75rem;">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> ' +
                     (I18N.t('admin.btn_revoke') || 'Revoke') + '</button></td></tr>';
@@ -739,6 +775,7 @@
     }
 
     // ─── Initialize ───
+    TZ.init();
     I18N.init().then(() => {
         loadUserInfo();
         loadPreferences();

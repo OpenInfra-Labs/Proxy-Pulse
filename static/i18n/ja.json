@@ -83,7 +83,9 @@
         "language": "言語",
         "theme": "テーマ",
         "save_preferences": "設定を保存",
-        "preferences_saved": "設定が保存されました"
+        "preferences_saved": "設定が保存されました",
+        "timezone": "タイムゾーン",
+        "timezone_auto": "自動（ブラウザ）"
     },
     "admin": {
         "title": "Proxy Pulse — 管理パネル",

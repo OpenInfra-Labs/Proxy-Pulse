@@ -213,6 +213,11 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Migration: add timezone column to user_preferences if missing
+        let _ = sqlx::query("ALTER TABLE user_preferences ADD COLUMN timezone TEXT NOT NULL DEFAULT 'auto'")
+            .execute(&self.pool)
+            .await;
+
         // Repair broken check_logs FK from previous migrations (SQLite 3.26+ bug)
         self.repair_check_logs_fk().await?;
 

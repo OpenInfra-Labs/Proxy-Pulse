@@ -54,6 +54,12 @@ pub async fn get_me(
 pub struct PreferencesRequest {
     pub theme: String,
     pub language: String,
+    #[serde(default = "default_timezone")]
+    pub timezone: String,
+}
+
+fn default_timezone() -> String {
+    "auto".to_string()
 }
 
 pub async fn get_preferences(
@@ -79,7 +85,7 @@ pub async fn get_preferences(
         .map_err(|_| err("Invalid session"))?
         .ok_or_else(|| err("Invalid session"))?;
 
-    let (theme, language) = state
+    let (theme, language, timezone) = state
         .db
         .get_user_preferences(user_id)
         .await
@@ -88,7 +94,8 @@ pub async fn get_preferences(
     Ok(Json(serde_json::json!({
         "success": true,
         "theme": theme,
-        "language": language
+        "language": language,
+        "timezone": timezone
     })))
 }
 
@@ -129,9 +136,17 @@ pub async fn save_preferences(
         return Err(err("Invalid theme or language value"));
     }
 
+    // Validate timezone: must be "auto" or a valid IANA timezone name (basic format check)
+    if body.timezone != "auto"
+        && (body.timezone.len() > 50
+            || !body.timezone.chars().all(|c| c.is_ascii_alphanumeric() || c == '/' || c == '_' || c == '-' || c == '+'))
+    {
+        return Err(err("Invalid timezone value"));
+    }
+
     state
         .db
-        .save_user_preferences(user_id, &body.theme, &body.language)
+        .save_user_preferences(user_id, &body.theme, &body.language, &body.timezone)
         .await
         .map_err(|_| err("Failed to save preferences"))?;
 
