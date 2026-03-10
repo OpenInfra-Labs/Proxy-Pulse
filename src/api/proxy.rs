@@ -265,10 +265,13 @@ async fn get_stats(
     }
 }
 
-async fn health_check() -> Json<ApiResponse<String>> {
+async fn health_check() -> Json<ApiResponse<serde_json::Value>> {
     Json(ApiResponse {
         success: true,
-        data: "Proxy Pulse is running".to_string(),
+        data: serde_json::json!({
+            "status": "running",
+            "version": env!("CARGO_PKG_VERSION")
+        }),
     })
 }
 

@@ -288,7 +288,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <span data-i18n="dashboard.footer_version">Proxy Pulse v1.0.2</span>
+        <span id="footerVersion">Proxy Pulse</span>
         <span class="footer-divider">|</span>
         <span data-i18n="dashboard.footer_tagline">Open Source Proxy Pool Management</span>
         <span class="footer-divider">|</span>
@@ -576,6 +576,14 @@
         loadUserInfo();
         loadPreferences();
     });
+
+    // Fetch version from API
+    fetch('/api/v1/health').then(r => r.json()).then(d => {
+        if (d.success && d.data.version) {
+            const el = document.getElementById('footerVersion');
+            if (el) el.textContent = 'Proxy Pulse v' + d.data.version;
+        }
+    }).catch(() => {});
     </script>
     <script src="/static/js/app.js?v=20260310"></script>
     <script>window._loadApiTokens && window._loadApiTokens();</script>
