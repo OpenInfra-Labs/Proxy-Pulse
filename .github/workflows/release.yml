@@ -78,22 +78,14 @@ jobs:
 
       - name: Prepare main branch content
         run: |
+          cp -r main deploy
           mkdir -p deploy/build
           for dir in artifacts/*/; do
             name=$(basename "$dir")
             cp "$dir/proxy-pulse" "deploy/build/$name"
             chmod +x "deploy/build/$name"
           done
-          cp config.example.yaml deploy/config.example.yaml
-          cp run deploy/run
           chmod +x deploy/run
-          cp README.md deploy/ 2>/dev/null || true
-          cp README_CN.md deploy/ 2>/dev/null || true
-          cp LICENSE deploy/ 2>/dev/null || true
-          cp DISCLAIMER.md deploy/ 2>/dev/null || true
-          cp DISCLAIMER_CN.md deploy/ 2>/dev/null || true
-          cp TERMS_OF_USE.md deploy/ 2>/dev/null || true
-          cp TERMS_OF_USE_CN.md deploy/ 2>/dev/null || true
 
       - name: Deploy to main branch
         run: |
