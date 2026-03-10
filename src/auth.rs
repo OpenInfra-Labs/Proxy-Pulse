@@ -312,6 +312,7 @@ pub async fn change_password(
 #[derive(Debug, Deserialize)]
 pub struct CreateApiKeyRequest {
     pub name: String,
+    pub expires_in: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -326,6 +327,8 @@ pub struct ApiKeyInfo {
     pub id: i64,
     pub name: String,
     pub preview: String,
+    pub expires_at: Option<String>,
+    pub expired: bool,
     pub created_at: String,
 }
 
@@ -363,7 +366,21 @@ pub async fn create_api_key(
     let key_hash = hash_api_key(&raw_key);
     let preview = format!("ppk_{}...{}", &raw_key[4..12], &raw_key[raw_key.len()-4..]);
 
-    let id = state.db.create_api_key(&name, &key_hash, &preview).await.map_err(|e| {
+    // Calculate expiry
+    let expires_at = body.expires_in.as_deref().and_then(|v| {
+        let hours: i64 = match v {
+            "1h" => 1,
+            "24h" => 24,
+            "7d" => 24 * 7,
+            "30d" => 24 * 30,
+            "90d" => 24 * 90,
+            "365d" => 24 * 365,
+            _ => return None,
+        };
+        Some((Utc::now().naive_utc() + Duration::hours(hours)).format("%Y-%m-%d %H:%M:%S").to_string())
+    });
+
+    let id = state.db.create_api_key(&name, &key_hash, &preview, expires_at.as_deref()).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(AuthResponse { success: false, token: None, error: Some(format!("Failed to create API key: {}", e)) }),
@@ -383,8 +400,12 @@ pub async fn list_api_keys(
         )
     })?;
 
-    let keys: Vec<ApiKeyInfo> = keys.into_iter().map(|(id, name, preview, created_at)| {
-        ApiKeyInfo { id, name, preview, created_at }
+    let keys: Vec<ApiKeyInfo> = keys.into_iter().map(|(id, name, preview, expires_at, created_at)| {
+        let expired = expires_at.as_ref().map_or(false, |exp| {
+            chrono::NaiveDateTime::parse_from_str(exp, "%Y-%m-%d %H:%M:%S")
+                .map_or(false, |dt| dt < Utc::now().naive_utc())
+        });
+        ApiKeyInfo { id, name, preview, expires_at, expired, created_at }
     }).collect();
 
     Ok(Json(ApiKeyListResponse { success: true, keys }))

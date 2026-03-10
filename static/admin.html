@@ -806,10 +806,20 @@
                     They cannot be used for admin operations.
                 </p>
 
-                <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;max-width:480px;">
-                    <div class="form-group" style="flex:1;margin-bottom:0;">
+                <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;max-width:640px;flex-wrap:wrap;">
+                    <div class="form-group" style="flex:1;margin-bottom:0;min-width:160px;">
                         <label class="form-label" data-i18n="admin.api_key_name">Key Name</label>
                         <input type="text" class="form-input" id="apiKeyName" placeholder="e.g. My App" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;min-width:140px;">
+                        <label class="form-label" data-i18n="admin.api_key_expiry">Expiration</label>
+                        <select class="form-input" id="apiKeyExpiry" style="cursor:pointer;">
+                            <option value="24h">24 hours</option>
+                            <option value="7d" selected>7 days</option>
+                            <option value="30d">30 days</option>
+                            <option value="90d">90 days</option>
+                            <option value="365d">365 days</option>
+                        </select>
                     </div>
                     <button type="button" class="btn btn-primary" onclick="createApiKey()" data-i18n="admin.btn_create_key">Create Key</button>
                 </div>
@@ -830,12 +840,13 @@
                             <tr>
                                 <th data-i18n="admin.col_name">Name</th>
                                 <th data-i18n="admin.col_key_preview">Key</th>
+                                <th data-i18n="admin.col_expires">Expires</th>
                                 <th data-i18n="admin.col_created">Created</th>
                                 <th data-i18n="common.actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="apiKeysTableBody">
-                            <tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:20px;">Loading...</td></tr>
+                            <tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:20px;">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1354,14 +1365,26 @@
             if (!json.success) throw new Error(json.error);
 
             if (json.keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:20px;">' + (I18N.t('admin.no_api_keys') || 'No API keys created yet') + '</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:20px;">' + (I18N.t('admin.no_api_keys') || 'No API keys created yet') + '</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = json.keys.map(k => `
-                <tr>
+            tbody.innerHTML = json.keys.map(k => {
+                let expiryCell;
+                if (!k.expires_at) {
+                    expiryCell = `<span style="color:var(--accent-cyan);">${I18N.t('admin.expiry_never') || 'Never'}</span>`;
+                } else if (k.expired) {
+                    expiryCell = `<span style="color:var(--accent-red);">${I18N.t('admin.expiry_expired') || 'Expired'}</span>`;
+                } else {
+                    const d = new Date(k.expires_at + 'Z');
+                    expiryCell = `<span style="color:var(--text-secondary);">${d.toLocaleString()}</span>`;
+                }
+                const rowStyle = k.expired ? 'opacity:0.5;' : '';
+                return `
+                <tr style="${rowStyle}">
                     <td><strong>${escHtml(k.name)}</strong></td>
                     <td><code style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--text-secondary);">${escHtml(k.preview)}</code></td>
+                    <td>${expiryCell}</td>
                     <td style="color:var(--text-secondary);">${k.created_at}</td>
                     <td>
                         <button class="btn btn-danger btn-sm" onclick="deleteApiKey(${k.id})" style="padding:4px 10px;font-size:0.75rem;">
@@ -1369,10 +1392,10 @@
                             ${I18N.t('admin.btn_revoke') || 'Revoke'}
                         </button>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
         } catch(e) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--accent-red);padding:20px;">Error: ' + escHtml(e.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--accent-red);padding:20px;">Error: ' + escHtml(e.message) + '</td></tr>';
         }
     }
 
@@ -1384,11 +1407,13 @@
             return;
         }
 
+        const expiresIn = document.getElementById('apiKeyExpiry').value;
+
         try {
             const resp = await authFetch('/api/v1/auth/api-keys', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name }),
+                body: JSON.stringify({ name, expires_in: expiresIn }),
             });
             const json = await resp.json();
             if (json.success) {
@@ -1396,6 +1421,12 @@
                 document.getElementById('newKeyDisplay').style.display = 'block';
                 document.getElementById('newKeyValue').textContent = json.key;
                 nameInput.value = '';
+
+                // Save full key to localStorage for dashboard token selector
+                const saved = (() => { try { return JSON.parse(localStorage.getItem('pp_api_keys') || '[]'); } catch { return []; } })();
+                saved.push({ id: json.id, name, key: json.key });
+                localStorage.setItem('pp_api_keys', JSON.stringify(saved));
+
                 showToast(I18N.t('admin.api_key_success') || 'API key created', 'success');
                 loadApiKeys();
             } else {
@@ -1429,6 +1460,11 @@
             const resp = await authFetch(`/api/v1/auth/api-keys/${id}`, { method: 'DELETE' });
             const json = await resp.json();
             if (json.success) {
+                // Remove from localStorage
+                try {
+                    const saved = JSON.parse(localStorage.getItem('pp_api_keys') || '[]');
+                    localStorage.setItem('pp_api_keys', JSON.stringify(saved.filter(s => s.id !== id)));
+                } catch {}
                 showToast(I18N.t('admin.key_revoked') || 'API key revoked', 'success');
                 loadApiKeys();
             } else {

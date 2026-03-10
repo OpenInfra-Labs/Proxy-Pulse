@@ -186,6 +186,12 @@
                             <button class="api-toggle-btn" data-value="all" data-i18n="dashboard.api_limit_all">ALL</button>
                         </div>
                     </div>
+                    <div class="api-toggle-group">
+                        <label class="api-toggle-label" data-i18n="dashboard.api_token">Token</label>
+                        <select id="apiTokenSelect" onchange="onTokenSelectChange()" style="flex:1;padding:6px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;max-width:320px;cursor:pointer;">
+                            <option value="" data-i18n="dashboard.api_token_none">No Token (session auth)</option>
+                        </select>
+                    </div>
                     <div class="api-result-row" style="margin-top:14px;">
                         <code class="api-link-url" id="apiResultUrl">/api/v1/proxy/json?sort=score&amp;limit=10</code>
                         <button class="api-link-copy" id="apiCopyBtn" onclick="copyGeneratedApiLink()" title="Copy">
@@ -346,14 +352,75 @@
         const format = getToggleValue('apiFormatBtns');
         const sort = getToggleValue('apiSortBtns');
         const limit = getToggleValue('apiLimitBtns');
+        const select = document.getElementById('apiTokenSelect');
+        const token = select ? select.value : '';
         let url = `/api/v1/proxy/${format}?sort=${sort}`;
         if (limit !== 'all') {
             url += `&limit=${limit}`;
+        }
+        if (token) {
+            url += `&api_key=${encodeURIComponent(token)}`;
         }
         document.getElementById('apiResultUrl').textContent = url;
     }
 
     initApiToggles();
+
+    // ─── API Token Management ───
+    // Store created API keys in localStorage for reuse in the dashboard
+    function getSavedApiKeys() {
+        try { return JSON.parse(localStorage.getItem('pp_api_keys') || '[]'); }
+        catch { return []; }
+    }
+
+    function onTokenSelectChange() {
+        updateApiUrl();
+    }
+
+    // Load API keys from server and merge with locally-saved full keys
+    async function loadApiTokens() {
+        try {
+            const resp = await authFetch('/api/v1/auth/api-keys');
+            const json = await resp.json();
+            if (!json.success) return;
+            const select = document.getElementById('apiTokenSelect');
+            while (select.options.length > 1) select.remove(1);
+
+            const saved = getSavedApiKeys();
+            // Build options from server keys, matching with locally-saved full keys
+            const activeKeys = json.keys.filter(k => !k.expired);
+            activeKeys.forEach(k => {
+                const local = saved.find(s => s.id === k.id);
+                const opt = document.createElement('option');
+                if (local && local.key) {
+                    opt.value = local.key;
+                    let label = k.name;
+                    if (k.expires_at) {
+                        const exp = new Date(k.expires_at + 'Z');
+                        label += ` (${I18N.t('dashboard.api_token_expires') || 'expires'} ${exp.toLocaleDateString()})`;
+                    }
+                    opt.textContent = label;
+                } else {
+                    opt.value = '';
+                    opt.disabled = true;
+                    let label = `${k.name} — ${k.preview}`;
+                    if (k.expires_at) {
+                        const exp = new Date(k.expires_at + 'Z');
+                        label += ` (${exp.toLocaleDateString()})`;
+                    }
+                    label += ` [${I18N.t('dashboard.api_token_no_key') || 'key not saved locally'}]`;
+                    opt.textContent = label;
+                }
+                select.appendChild(opt);
+            });
+
+            // Clean up saved keys that no longer exist on server
+            const serverIds = json.keys.map(k => k.id);
+            const cleaned = saved.filter(s => serverIds.includes(s.id));
+            localStorage.setItem('pp_api_keys', JSON.stringify(cleaned));
+        } catch(e) { /* ignore */ }
+    }
+    loadApiTokens();
 
     // Init i18n then start app
     I18N.init().then(() => updateLangUI(I18N.locale));

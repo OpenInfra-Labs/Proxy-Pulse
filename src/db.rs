@@ -166,7 +166,7 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
-        // API keys table (permanent tokens for proxy export endpoints only)
+        // API keys table (tokens for proxy export endpoints only)
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS api_keys (
@@ -174,12 +174,18 @@ impl Database {
                 name TEXT NOT NULL,
                 key_hash TEXT NOT NULL UNIQUE,
                 preview TEXT NOT NULL,
+                expires_at TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             "#,
         )
         .execute(&self.pool)
         .await?;
+
+        // Migration: add expires_at column if missing (existing DBs)
+        let _ = sqlx::query("ALTER TABLE api_keys ADD COLUMN expires_at TEXT")
+            .execute(&self.pool)
+            .await;
 
         Ok(())
     }
@@ -926,13 +932,14 @@ impl Database {
 
     // ── API Keys ──
 
-    pub async fn create_api_key(&self, name: &str, key_hash: &str, preview: &str) -> Result<i64> {
+    pub async fn create_api_key(&self, name: &str, key_hash: &str, preview: &str, expires_at: Option<&str>) -> Result<i64> {
         let result = sqlx::query(
-            "INSERT INTO api_keys (name, key_hash, preview) VALUES (?, ?, ?)",
+            "INSERT INTO api_keys (name, key_hash, preview, expires_at) VALUES (?, ?, ?, ?)",
         )
         .bind(name)
         .bind(key_hash)
         .bind(preview)
+        .bind(expires_at)
         .execute(&self.pool)
         .await?;
         Ok(result.last_insert_rowid())
@@ -940,7 +947,7 @@ impl Database {
 
     pub async fn validate_api_key(&self, key_hash: &str) -> Result<bool> {
         let row = sqlx::query_as::<_, (i64,)>(
-            "SELECT id FROM api_keys WHERE key_hash = ?",
+            "SELECT id FROM api_keys WHERE key_hash = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
         )
         .bind(key_hash)
         .fetch_optional(&self.pool)
@@ -948,9 +955,9 @@ impl Database {
         Ok(row.is_some())
     }
 
-    pub async fn get_all_api_keys(&self) -> Result<Vec<(i64, String, String, String)>> {
-        let rows = sqlx::query_as::<_, (i64, String, String, String)>(
-            "SELECT id, name, preview, created_at FROM api_keys ORDER BY created_at DESC",
+    pub async fn get_all_api_keys(&self) -> Result<Vec<(i64, String, String, Option<String>, String)>> {
+        let rows = sqlx::query_as::<_, (i64, String, String, Option<String>, String)>(
+            "SELECT id, name, preview, expires_at, created_at FROM api_keys ORDER BY created_at DESC",
         )
         .fetch_all(&self.pool)
         .await?;
