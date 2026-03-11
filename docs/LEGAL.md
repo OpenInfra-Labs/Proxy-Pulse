@@ -101,8 +101,8 @@ Your rights under these terms terminate automatically if you fail to comply with
 
 ## 12. Contact
 
-For questions, please open an issue on the [GitHub repository](https://github.com/OpenInfra-Labs/Proxy-Pulse).
+For questions, please open an issue on the [GitHub repository](https://github.com/illab-org/Proxy-Pulse).
 
 ---
 
-**Copyright (c) 2026 OpenInfra Labs. All rights reserved.**
+**Copyright (c) 2026 illab-org. All rights reserved.**

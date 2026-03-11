@@ -108,8 +108,8 @@
 
 ## 第十二条 联系方式
 
-如有疑问，请在 [GitHub 仓库](https://github.com/OpenInfra-Labs/Proxy-Pulse) 中提交 Issue。
+如有疑问，请在 [GitHub 仓库](https://github.com/illab-org/Proxy-Pulse) 中提交 Issue。
 
 ---
 
-**版权所有 (c) 2026 OpenInfra Labs。保留所有权利。**
+**版权所有 (c) 2026 illab-org。保留所有权利。**

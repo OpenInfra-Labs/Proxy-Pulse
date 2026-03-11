@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────
 $ErrorActionPreference = "Stop"
 
-$REPO = "OpenInfra-Labs/Proxy-Pulse"
+$REPO = "illab-org/Proxy-Pulse"
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SCRIPT_PATH = $MyInvocation.MyCommand.Path
 $BINARY = Join-Path $SCRIPT_DIR "proxy-pulse.exe"

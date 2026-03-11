@@ -6,7 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
-[![Docker](https://img.shields.io/badge/docker-Docker%20Hub-blue.svg)](https://hub.docker.com/r/openinfralabs/proxy-pulse)
+[![Docker](https://img.shields.io/badge/docker-Docker%20Hub-blue.svg)](https://hub.docker.com/r/illab/proxy-pulse)
 
 > **[中文文档](docs/README_CN.md)** | **[Legal Terms](docs/LEGAL.md)**
 
@@ -42,14 +42,14 @@ No Rust required — just download the `run` script and it handles everything:
 **Linux / macOS:**
 
 ```bash
-curl -fsSL -o run https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-Pulse/main/run && chmod +x run
+curl -fsSL -o run https://raw.githubusercontent.com/illab-org/Proxy-Pulse/main/run && chmod +x run
 ./run
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-Pulse/main/run.ps1" -OutFile run.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/illab-org/Proxy-Pulse/main/run.ps1" -OutFile run.ps1
 .\run.ps1
 ```
 
@@ -75,22 +75,22 @@ Multi-arch Docker images (amd64/arm64) are published to Docker Hub on every rele
 
 ```bash
 # Run with default settings
-docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
+docker run -d --name proxy-pulse -p 8080:8080 illab/proxy-pulse:latest
 
 # Persist data across container restarts
 docker run -d --name proxy-pulse -p 8080:8080 \
   -v proxy-pulse-data:/app \
   --restart unless-stopped \
-  openinfralabs/proxy-pulse:latest
+  illab/proxy-pulse:latest
 
 # Pin to a specific version
 docker run -d --name proxy-pulse -p 8080:8080 \
-  openinfralabs/proxy-pulse:v1.3.0
+  illab/proxy-pulse:v1.3.0
 
 # Custom port + demo mode
 docker run -d --name proxy-pulse -p 3000:3000 \
   -e PORT=3000 \
-  openinfralabs/proxy-pulse:latest -- --demo
+  illab/proxy-pulse:latest -- --demo
 ```
 
 ---
@@ -106,7 +106,7 @@ docker run -d --name proxy-pulse -p 3000:3000 \
 
 ```bash
 # Clone the repository
-git clone https://github.com/OpenInfra-Labs/Proxy-Pulse.git
+git clone https://github.com/illab-org/Proxy-Pulse.git
 cd Proxy-Pulse
 
 # Build release binary
@@ -392,7 +392,7 @@ Contributions are welcome! Please ensure all contributions comply with the proje
 
 This project is licensed under the [MIT License](LICENSE).
 
-Copyright (c) 2026 OpenInfra Labs.
+Copyright (c) 2026 illab-org.
 
 ---
 

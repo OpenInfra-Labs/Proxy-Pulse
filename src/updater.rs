@@ -5,7 +5,7 @@ use tracing::{error, info, warn};
 
 use crate::db::Database;
 
-const REPO: &str = "OpenInfra-Labs/Proxy-Pulse";
+const REPO: &str = "illab-org/Proxy-Pulse";
 const CHECK_INTERVAL_SECS: u64 = 30; // Check every 30 seconds
 
 #[derive(Clone)]

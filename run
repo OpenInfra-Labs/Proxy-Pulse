@@ -7,7 +7,7 @@
 # ─────────────────────────────────────────────
 set -euo pipefail
 
-REPO="OpenInfra-Labs/Proxy-Pulse"
+REPO="illab-org/Proxy-Pulse"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "$0")"
 PID_FILE="$SCRIPT_DIR/.proxy-pulse.pid"

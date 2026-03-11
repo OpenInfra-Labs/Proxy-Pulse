@@ -219,12 +219,12 @@ jobs:
           sparse-checkout: test
 
       - name: Pull Docker image
-        run: docker pull docker.io/openinfralabs/proxy-pulse:${{ needs.resolve-version.outputs.tag }}
+        run: docker pull docker.io/illab/proxy-pulse:${{ needs.resolve-version.outputs.tag }}
 
       - name: Start container
         run: |
           docker run -d --name pp-test -p 8080:8080 \
-            docker.io/openinfralabs/proxy-pulse:${{ needs.resolve-version.outputs.tag }}
+            docker.io/illab/proxy-pulse:${{ needs.resolve-version.outputs.tag }}
           for i in $(seq 1 30); do
             if curl -sf http://127.0.0.1:8080/api/v1/auth/status > /dev/null 2>&1; then
               echo "Container ready after ${i}s"

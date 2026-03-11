@@ -4,7 +4,7 @@ version = "1.4.5"
 edition = "2021"
 description = "Open-source proxy pool management and network quality monitoring system"
 license = "MIT"
-authors = ["OpenInfra Labs"]
+authors = ["illab-org"]
 
 [dependencies]
 # Async runtime

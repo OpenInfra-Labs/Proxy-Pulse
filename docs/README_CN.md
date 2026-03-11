@@ -6,7 +6,7 @@
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)]()
 [![Axum](https://img.shields.io/badge/web-axum%200.7-blue.svg)]()
 [![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg)]()
-[![Docker](https://img.shields.io/badge/docker-Docker%20Hub-blue.svg)](https://hub.docker.com/r/openinfralabs/proxy-pulse)
+[![Docker](https://img.shields.io/badge/docker-Docker%20Hub-blue.svg)](https://hub.docker.com/r/illab/proxy-pulse)
 
 > **[English Documentation](../README.md)** | **[法律条款](LEGAL_CN.md)**
 
@@ -40,14 +40,14 @@ Proxy Pulse 是一款开源的代理池生命周期管理工具，专为**合法
 **Linux / macOS：**
 
 ```bash
-curl -fsSL -o run https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-Pulse/main/run && chmod +x run
+curl -fsSL -o run https://raw.githubusercontent.com/illab-org/Proxy-Pulse/main/run && chmod +x run
 ./run
 ```
 
 **Windows (PowerShell)：**
 
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-Pulse/main/run.ps1" -OutFile run.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/illab-org/Proxy-Pulse/main/run.ps1" -OutFile run.ps1
 .\run.ps1
 ```
 
@@ -73,22 +73,22 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OpenInfra-Labs/Proxy-P
 
 ```bash
 # 使用默认配置运行
-docker run -d --name proxy-pulse -p 8080:8080 openinfralabs/proxy-pulse:latest
+docker run -d --name proxy-pulse -p 8080:8080 illab/proxy-pulse:latest
 
 # 持久化数据（容器重启不丢失）
 docker run -d --name proxy-pulse -p 8080:8080 \
   -v proxy-pulse-data:/app \
   --restart unless-stopped \
-  openinfralabs/proxy-pulse:latest
+  illab/proxy-pulse:latest
 
 # 指定版本
 docker run -d --name proxy-pulse -p 8080:8080 \
-  openinfralabs/proxy-pulse:v1.3.0
+  illab/proxy-pulse:v1.3.0
 
 # 自定义端口 + 演示模式
 docker run -d --name proxy-pulse -p 3000:3000 \
   -e PORT=3000 \
-  openinfralabs/proxy-pulse:latest -- --demo
+  illab/proxy-pulse:latest -- --demo
 ```
 
 ---
@@ -103,7 +103,7 @@ docker run -d --name proxy-pulse -p 3000:3000 \
 ### 从源码构建
 
 ```bash
-git clone https://github.com/OpenInfra-Labs/Proxy-Pulse.git
+git clone https://github.com/illab-org/Proxy-Pulse.git
 cd Proxy-Pulse
 cargo build --release
 ```
@@ -335,7 +335,7 @@ Proxy-Pulse/
 
 ## 许可证
 
-本项目基于 [MIT 许可证](../LICENSE) 授权。版权所有 (c) 2026 OpenInfra Labs。
+本项目基于 [MIT 许可证](../LICENSE) 授权。版权所有 (c) 2026 illab-org。
 
 ---
 
