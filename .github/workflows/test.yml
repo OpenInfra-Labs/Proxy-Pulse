@@ -54,7 +54,7 @@ jobs:
             artifact: proxy-pulse-linux-arm64
             ext: tar.gz
             binary: proxy-pulse-linux-arm64
-            skip_run: true
+            qemu_docker: true
           - os: macos-latest
             artifact: proxy-pulse-darwin-amd64
             ext: tar.gz
@@ -109,11 +109,32 @@ jobs:
           echo "RESULT=skip" >> "$GITHUB_ENV"
         shell: bash
 
+      - name: Setup QEMU
+        if: matrix.qemu_docker == true
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Start server (QEMU Docker)
+        if: matrix.qemu_docker == true
+        run: |
+          docker run -d --name pp-qemu-test --platform linux/arm64 \
+            -v "$PWD:/app" -w /app -p 8080:8080 \
+            ubuntu:24.04 bash -c "chmod +x ./proxy-pulse && exec ./proxy-pulse"
+          for i in $(seq 1 120); do
+            if curl -sf http://127.0.0.1:8080/api/v1/auth/status > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+        shell: bash
+
       - name: Start server
-        if: matrix.skip_run != true
+        if: matrix.skip_run != true && matrix.qemu_docker != true
         run: |
           ${{ matrix.runner_cmd }} &
-          echo $! > /tmp/pp.pid
+          echo $! > "${{ runner.temp }}/pp.pid"
           for i in $(seq 1 60); do
             if curl -sf http://127.0.0.1:8080/api/v1/auth/status > /dev/null 2>&1; then
               echo "Server ready after ${i}s"
@@ -148,27 +169,35 @@ jobs:
         shell: bash
 
       - name: Stop server
-        if: always() && matrix.skip_run != true
+        if: always() && matrix.skip_run != true && matrix.qemu_docker != true
         run: |
-          [ -f /tmp/pp.pid ] && kill "$(cat /tmp/pp.pid)" 2>/dev/null || true
+          [ -f "${{ runner.temp }}/pp.pid" ] && kill "$(cat "${{ runner.temp }}/pp.pid")" 2>/dev/null || true
+        shell: bash
+
+      - name: Stop QEMU container
+        if: always() && matrix.qemu_docker == true
+        run: |
+          docker logs pp-qemu-test 2>&1 | tail -20 || true
+          docker rm -f pp-qemu-test 2>/dev/null || true
         shell: bash
 
       - name: Save result
         if: always()
         run: |
-          mkdir -p /tmp/test-results
+          RESULTS_DIR="${{ runner.temp }}/test-results"
+          mkdir -p "$RESULTS_DIR"
           ARTIFACT="${{ matrix.artifact }}"
           if [ "${{ matrix.skip_run }}" = "true" ]; then
-            echo '{"artifact":"'"$ARTIFACT"'","status":"skip","duration":"—","errors":""}' > "/tmp/test-results/${ARTIFACT}.json"
+            echo '{"artifact":"'"$ARTIFACT"'","status":"skip","duration":"—","errors":""}' > "$RESULTS_DIR/${ARTIFACT}.json"
           elif [ "${{ steps.test.outputs.exit_code }}" = "0" ]; then
-            echo '{"artifact":"'"$ARTIFACT"'","status":"pass","duration":"${{ steps.test.outputs.duration }}","errors":""}' > "/tmp/test-results/${ARTIFACT}.json"
+            echo '{"artifact":"'"$ARTIFACT"'","status":"pass","duration":"${{ steps.test.outputs.duration }}","errors":""}' > "$RESULTS_DIR/${ARTIFACT}.json"
           else
             ERRORS=$(cat <<'ERREOF'
           ${{ steps.test.outputs.errors }}
           ERREOF
           )
             ERRORS_ESCAPED=$(echo "$ERRORS" | jq -Rs .)
-            echo '{"artifact":"'"$ARTIFACT"'","status":"fail","duration":"${{ steps.test.outputs.duration }}","errors":'"$ERRORS_ESCAPED"'}' > "/tmp/test-results/${ARTIFACT}.json"
+            echo '{"artifact":"'"$ARTIFACT"'","status":"fail","duration":"${{ steps.test.outputs.duration }}","errors":'"$ERRORS_ESCAPED"'}' > "$RESULTS_DIR/${ARTIFACT}.json"
           fi
         shell: bash
 
@@ -177,7 +206,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-result-${{ matrix.artifact }}
-          path: /tmp/test-results/
+          path: ${{ runner.temp }}/test-results/
           retention-days: 1
 
   test-docker:
@@ -236,16 +265,17 @@ jobs:
       - name: Save result
         if: always()
         run: |
-          mkdir -p /tmp/test-results
+          RESULTS_DIR="${{ runner.temp }}/test-results"
+          mkdir -p "$RESULTS_DIR"
           if [ "${{ steps.test.outputs.exit_code }}" = "0" ]; then
-            echo '{"artifact":"docker","status":"pass","duration":"${{ steps.test.outputs.duration }}","errors":""}' > /tmp/test-results/docker.json
+            echo '{"artifact":"docker","status":"pass","duration":"${{ steps.test.outputs.duration }}","errors":""}' > "$RESULTS_DIR/docker.json"
           else
             ERRORS=$(cat <<'ERREOF'
           ${{ steps.test.outputs.errors }}
           ERREOF
           )
             ERRORS_ESCAPED=$(echo "$ERRORS" | jq -Rs .)
-            echo '{"artifact":"docker","status":"fail","duration":"${{ steps.test.outputs.duration }}","errors":'"$ERRORS_ESCAPED"'}' > /tmp/test-results/docker.json
+            echo '{"artifact":"docker","status":"fail","duration":"${{ steps.test.outputs.duration }}","errors":'"$ERRORS_ESCAPED"'}' > "$RESULTS_DIR/docker.json"
           fi
 
       - name: Upload result
@@ -253,7 +283,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-result-docker
-          path: /tmp/test-results/
+          path: ${{ runner.temp }}/test-results/
           retention-days: 1
 
   summary:
