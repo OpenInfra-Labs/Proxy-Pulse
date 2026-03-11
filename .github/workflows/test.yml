@@ -1,0 +1,102 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'static/**'
+      - 'test/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-binary:
+    name: Integration Tests (Binary)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Start Proxy Pulse
+        run: |
+          ./target/release/proxy-pulse &
+          echo $! > /tmp/pp.pid
+          # Wait for server to be ready
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run integration tests
+        run: ./test/integration.sh http://127.0.0.1:8080
+
+      - name: Stop server
+        if: always()
+        run: |
+          [ -f /tmp/pp.pid ] && kill "$(cat /tmp/pp.pid)" 2>/dev/null || true
+
+  test-docker:
+    name: Integration Tests (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build binary for Docker
+        run: cargo build --release
+
+      - name: Prepare Docker build context
+        run: |
+          mkdir -p build/amd64
+          cp target/release/proxy-pulse build/amd64/proxy-pulse
+          chmod +x build/amd64/proxy-pulse
+
+      - name: Build Docker image
+        run: docker build --build-arg TARGETARCH=amd64 -t proxy-pulse-test .
+
+      - name: Start Docker container
+        run: |
+          docker run -d --name pp-test -p 8080:8080 proxy-pulse-test
+          # Wait for server to be ready
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8080/api/v1/health > /dev/null 2>&1; then
+              echo "Container ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run integration tests
+        run: ./test/integration.sh http://127.0.0.1:8080
+
+      - name: Docker logs
+        if: failure()
+        run: docker logs pp-test
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f pp-test 2>/dev/null || true
