@@ -250,7 +250,7 @@ fn calculate_next_check(proxy: &Proxy, success: bool) -> chrono::NaiveDateTime {
 }
 
 /// Calculate health score (0-100)
-///   Success rate:   60 pts  (rate × 60)
+///   Success rate:   60 pts  (sigmoid: c=80%, k=15)
 ///   Success count:  10 pts  (60% of max_success_count → full score)
 ///   Country:         6 pts  (tier-based ranking)
 ///   Proxy type:      4 pts  (more secure = higher)
@@ -264,9 +264,9 @@ fn calculate_score(
     let total_checks = proxy.success_count + proxy.fail_count + 1;
     let successes = proxy.success_count + if current_success { 1 } else { 0 };
 
-    // Success rate component (0-60)
+    // Success rate component (0-60): sigmoid function centered at 80%
     let rate = successes as f64 / total_checks as f64;
-    let success_rate_score = rate * 60.0;
+    let success_rate_score = 60.0 / (1.0 + (-15.0_f64 * (rate - 0.80)).exp());
 
     // Success count component (0-10): 60% of the top proxy's count = full 10
     let success_count_score = if max_success_count > 0 {
