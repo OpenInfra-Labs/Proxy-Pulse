@@ -74,23 +74,10 @@ The `run` script automatically:
 Multi-arch Docker images (amd64/arm64) are published to Docker Hub on every release:
 
 ```bash
-# Run with default settings
-docker run -d --name proxy-pulse -p 8080:8080 illab/proxy-pulse:latest
-
-# Persist data across container restarts
 docker run -d --name proxy-pulse -p 8080:8080 \
   -v proxy-pulse-data:/app \
   --restart unless-stopped \
   illab/proxy-pulse:latest
-
-# Pin to a specific version
-docker run -d --name proxy-pulse -p 8080:8080 \
-  illab/proxy-pulse:v1.3.0
-
-# Custom port + demo mode
-docker run -d --name proxy-pulse -p 3000:3000 \
-  -e PORT=3000 \
-  illab/proxy-pulse:latest -- --demo
 ```
 
 ---

@@ -72,23 +72,10 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/illab-org/Proxy-Pulse/
 每次发版自动构建多架构 Docker 镜像（amd64/arm64），发布至 Docker Hub：
 
 ```bash
-# 使用默认配置运行
-docker run -d --name proxy-pulse -p 8080:8080 illab/proxy-pulse:latest
-
-# 持久化数据（容器重启不丢失）
 docker run -d --name proxy-pulse -p 8080:8080 \
   -v proxy-pulse-data:/app \
   --restart unless-stopped \
   illab/proxy-pulse:latest
-
-# 指定版本
-docker run -d --name proxy-pulse -p 8080:8080 \
-  illab/proxy-pulse:v1.3.0
-
-# 自定义端口 + 演示模式
-docker run -d --name proxy-pulse -p 3000:3000 \
-  -e PORT=3000 \
-  illab/proxy-pulse:latest -- --demo
 ```
 
 ---
